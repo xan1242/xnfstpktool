@@ -28,3 +28,5 @@ Please note that that file contains copyrighted code by Electronic Arts and henc
 - A lot of cleanup. String operations are attrocious, beware of wolves in the code!
 - Multiple decompression types - only tested with PRECOMPVINYLS so far, seems to have worked!
 - Code refactoring and splitting
+- Make texture resizing easier
+- Add other games (other versions of the TPK chunk)
