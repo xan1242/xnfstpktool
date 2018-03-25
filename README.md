@@ -5,6 +5,7 @@ A general purpose TexturePack tool for NFS games
 Currently only supports TexturePack chunks from:
 - Need for Speed: Carbon
 - Need for Speed: ProStreet
+- Need for Speed: Undercover
 
 Planned support for other games.
 
