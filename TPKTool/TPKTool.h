@@ -109,7 +109,7 @@ struct TPKChild4Struct
 	unsigned int Unknown14;
 	unsigned int DataSize;
 	unsigned int Unknown1;
-	unsigned int Scaler; // actually DATA SIZE AGAIN HOLY FUCK HOW DID I MISS THIS
+	unsigned int Scaler;
 	unsigned short int ResX;
 	unsigned short int ResY;
 	unsigned char MipmapCount;
