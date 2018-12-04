@@ -27,6 +27,15 @@
     <ClInclude Include="TPKTool.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="TPKTool_DDSReading.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="TPKTool_ChunkReading.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="TPKTool_ChunkWriting.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">

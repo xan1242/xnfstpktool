@@ -147,6 +147,9 @@
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="targetver.h" />
     <ClInclude Include="TPKTool.h" />
+    <ClInclude Include="TPKTool_ChunkReading.h" />
+    <ClInclude Include="TPKTool_ChunkWriting.h" />
+    <ClInclude Include="TPKTool_DDSReading.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">

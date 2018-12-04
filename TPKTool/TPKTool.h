@@ -1,11 +1,11 @@
 #pragma once
+#include <string.h>
+#include <stdlib.h>
 
-#define TPKTOOL_VERSION 1
-//#define TPKTOOL_WIPVER
+#define TPKTOOL_VERSION 2
+#define TPKTOOL_WIPVER
 
-// uncomment this to enable decompression code, requires DecompressionCode.h which contains propriatery game code
-// place DecompressionCode.h in the project folder (also named TPKTool)
-//#define TPKTOOL_DECOMPRESSION
+
 
 #define DDS_MAGIC 0x20534444
 
@@ -27,26 +27,44 @@
 #define TPKDATA_CHILD2_CHUNKID 0x33320002
 #define TPKDATA_CHILD3_CHUNKID 0x33320003
 
-#define TPKTOOL_HELPMESSAGE "\
-Usage: [-w[i[a]]/-i/-h/-?] InFile [indexnumber] OutFile\n\n\
-Default mode extracts a single TPK.\n\
-Default: InFile = TPK file | OutFile = Output folder path\n\
--w     : Writing mode, InFile = TPK settings ini file | OutFile = Output file name\n\
--wi    : Writing mode for specific index, InFile = Index settings ini file | OutFile = Output file name | indexnumber required\n\
--wia   : Writing mode for all indexes, InFile = Index settings ini file | OutFile = Output path\n\
--i     : Interactive indexing mode, InFile = TPK file | OutFile = nothing (yet)\n\
--h/-?  : Show this help message\n\
-\nDDS files are extracted to their respective TPK hash directory. In case of interactive mode, the index is appended.\n\
-For files with multiple TPKs in the archive, use the interactive indexing mode.\n\
-Compressed TPKs are NOT fully supported yet.\n\
-Carbon and ProStreet are currently only supported!"
+#define TEXTURENUMCHANNELS 4
+#define TPK_TYPENAME_SIZE 0x1C
+#define TPK_PATHNAME_SIZE 0x40
 
-#define TPKTOOL_INDEXMESSAGE "Type a number of which TPK you want to extract, type 'a' for all, 'u' to unpack a specific index, 'ua' to unpack all.\n\
-Type 'p' to pack a specific index, 'pa' to pack all indexes.\nType anything else to quit.\n>"
+#define SIZEOF_TPK_CHILD1 0x7C
+#define SIZEOF_TPK_DATA_CHILD1 0x18
+#define SIZEOF_TPK_CHILD5 0x18
+#define SIZEOF_TPK_CHILD5_V2 0x20
+#define SIZEOF_TPK_CHILD4 0x59
+#define SIZEOF_TPK_CHILD4_V2 0x7C
+#define SIZEOF_TPK_CHILD2 0x8
+
+#define TPKTOOL_READINGMODE_V2 2
+#define TPKTOOL_WRITINGMODE_V2 2
+
+// min version is TPKv3 for PS3 anyway, so we don't care about TPKv2 for that platform (unless someone magically ports older NFS games to PS3)
+#define TPKTOOL_READINGMODE_PLAT_PS3 3 
+#define TPKTOOL_WRITINGMODE_PLAT_PS3 3
+
+#define TPKTOOL_HELPMESSAGE "\
+Usage: [-w/-h/-?] InFile OutFile\n\n\
+Default: InFile = TPK file | OutFile = Output folder path\n\
+-2     : TPK v2 mode (UG2 & MW), InFile = TPK file | OutFile = Output folder path\n\
+-PS3   : PS3 mode (TPK v3 only), InFile = TPK file | OutFile = Output folder path\n\
+-w     : Writing mode (TPK v3), InFile = TPK settings ini file | OutFile = Output file name\n\
+-w2    : Writing mode (TPK v2), InFile = TPK settings ini file | OutFile = Output file name\n\
+-wPS3  : Writing mode (PS3 TPK v3), InFile = TPK settings ini file | OutFile = Output file name\n\
+-h/-?  : Show this help message\n\
+\nDDS files are extracted to their respective TPK hash directory.\n\
+Compressed TPKs are NOT fully supported yet.\n\
+Carbon / ProStreet / MW / UG2 / UG1 are currently only supported!\n\
+While this tool can extract data for other platforms, it only fully works with PC! PS3 support WIP!"
 
 #define PRINTTYPE_ERROR "ERROR:"
 #define PRINTTYPE_INFO "INFO:"
 #define PRINTTYPE_WARNING "WARNING:"
+
+int WritingMode = 0;
 
 struct GamePixelFormatStruct // temporary storage for unknown stuff
 {
@@ -56,6 +74,30 @@ struct GamePixelFormatStruct // temporary storage for unknown stuff
 	unsigned int Unknown3;
 	unsigned int Unknown4;
 	unsigned int Unknown5;
+};
+
+struct TPKChild5Struct_PS3
+{
+	unsigned char Unknown1[8];
+	unsigned int PixelFormatVal1; // DXT1 = 0, DXT5 = 1, RGBA = 1, DXT3 = unknown, P8 = unknown
+	unsigned char SomeVal1; // 2
+	unsigned char SomeVal2; // 3
+	unsigned short int Unknown2; // 0
+	unsigned char PixelFormatVal2; // DXT1 = 3, DXT5 = 3, RGBA = 1, DXT3 = unknown, P8 = unknown
+	unsigned char PixelFormatVal3; // DXT1 = 3, DXT5 = 3, RGBA = 0, DXT3 = unknown, P8 = unknown
+	unsigned char Unknown3[0x1A]; // all = 0
+};
+
+struct GamePixelFormatStruct_v2 // temporary storage for unknown stuff
+{
+	unsigned int Unknown1;
+	unsigned int Unknown2;
+	unsigned int Unknown3; // sometimes 1
+	unsigned int Unknown4; // mostly 5
+	unsigned int Unknown5; // mostly 6, sometimes 2
+	unsigned int FourCC;
+	unsigned int Unknown6;
+	unsigned int Unknown7;
 };
 
 struct TPKLinkStruct
@@ -87,7 +129,10 @@ struct TPKChild3Struct
 	unsigned int TextureHash;
 	unsigned int AbsoluteOffset;
 	unsigned int Size;
-	unsigned int Unknown[3];
+	unsigned int OutSize;
+	unsigned int FromEndToHeaderOffset;
+	unsigned int unk;
+	//unsigned int Unknown[3];
 };
 
 struct CompressBlockHead
@@ -98,6 +143,37 @@ struct CompressBlockHead
 	unsigned int Unknown2; // += OutSize
 	unsigned int Unknown3; // += TotalBlockSize
 	unsigned int Unknown4;
+};
+
+struct TPK_v4_Child4Struct // World
+{
+	unsigned int Unknown13[3];
+	unsigned int Hash;
+	unsigned int Hash2;
+	unsigned int Hash3;
+	unsigned int DataOffset;
+	unsigned int Unknown14;
+	unsigned int DataSize;
+	unsigned int Unknown1;
+	unsigned int Scaler;
+	unsigned short int ResX;
+	unsigned short int ResY;
+	unsigned char UnkByteVal1;
+	unsigned char UnkByteVal2;
+	unsigned short int Unknown3;
+	unsigned char Unknown17;
+	unsigned char Unknown18;
+	unsigned char MipmapCount;
+	unsigned char UnkByteVal3;
+	unsigned int Unknown4;
+	unsigned int Unknown5; // affects color blending modes
+	unsigned int Unknown6;
+	unsigned int Unknown7;
+	unsigned int Unknown8;
+	unsigned int Unknown9;
+	unsigned int Unknown10;
+	unsigned int Unknown11;
+	unsigned int Unknown12;
 };
 
 struct TPKChild4Struct
@@ -112,11 +188,15 @@ struct TPKChild4Struct
 	unsigned int Scaler;
 	unsigned short int ResX;
 	unsigned short int ResY;
+	unsigned char UnkByteVal1;
+	unsigned char UnkByteVal2;
+	unsigned short int Unknown3;
+	unsigned char Unknown17;
+	unsigned char Unknown18;
 	unsigned char MipmapCount;
-	unsigned char Unknown3[3];
-	unsigned int TexFlags;
+	unsigned char UnkByteVal3;
 	unsigned int Unknown4;
-	unsigned int Unknown5;
+	unsigned int Unknown5; // affects color blending modes
 	unsigned int Unknown6;
 	unsigned int Unknown7;
 	unsigned int Unknown8;
@@ -126,37 +206,383 @@ struct TPKChild4Struct
 	unsigned int Unknown12;
 };
 
-struct TexStruct
+struct TPKChild4Struct_TPKv2
 {
-	char TexName[255];
-	TPKChild4Struct Child4;
-	/*unsigned int Hash;
+	unsigned int Unknown13[3];
+	char TexName[0x18];
+	unsigned int Hash;
 	unsigned int Hash2;
+	unsigned int unk1;
 	unsigned int DataOffset;
+	unsigned int Unknown14;
 	unsigned int DataSize;
-	unsigned int ResY;
-	unsigned int ResX;
-	unsigned int MipmapCount;
-	unsigned int TexFlags;
-	unsigned int Unknown1; // not using arrays on purpose, don't worry, I'm not a too big of an idiot
+	unsigned int Unknown1;
 	unsigned int Scaler;
-	unsigned int Unknown3;
+	unsigned short int ResX;
+	unsigned short int ResY;
+	unsigned char UnkByteVal1;
+	unsigned char UnkByteVal2;
+	unsigned short int Unknown3;
+	unsigned char Unknown17;
+	unsigned char Unknown18;
+	unsigned char MipmapCount;
+	unsigned char UnkByteVal3;
 	unsigned int Unknown4;
 	unsigned int Unknown5;
 	unsigned int Unknown6;
 	unsigned int Unknown7;
 	unsigned int Unknown8;
 	unsigned int Unknown9;
-	unsigned int Unknown10;
+	unsigned int Unknown10; // zeroes from here
 	unsigned int Unknown11;
-	unsigned int Unknown12;*/
-	char FilesystemPath[255];
-	//DirectX::DDS_PIXELFORMAT PixelFormat;
+	unsigned int Unknown12;
+	unsigned int Unknown15;
+	unsigned int Unknown16;
 };
 
-struct Index
+struct TexStruct_TPKv2
 {
-	unsigned long int TPKSize;
-	unsigned int TPKHash;
-	unsigned long int TPKOffset;
+	char TexName[255];
+	TPKChild4Struct_TPKv2 Child4;
+	char FilesystemPath[255];
 };
+
+struct TexStruct
+{
+	TPKChild4Struct Child4;
+	char TexName[255];
+	char FilesystemPath[255];
+};
+
+// a structure to encompass internally used variables to reduce text clutter during argument passing
+// MEMORY LEAK! very hacky ATM, needs fixing ASAP
+struct TPKToolInternalStruct
+{
+	unsigned int TPKTypeValue;
+	char TPKTypeName[TPK_TYPENAME_SIZE];
+	char TPKPathName[TPK_PATHNAME_SIZE];
+	char StatFileName[32];
+	char SettingsFileName[32];
+	char TotalFilePath[1124];
+	unsigned int HashArray[7];
+	unsigned int TextureCategoryHashArray[0xFFFF];
+	unsigned int TextureCategoryHashCount;
+	unsigned int TextureDataCount;
+	unsigned int AnimFrameHashArray[0xFFFF][255];
+	unsigned int AnimFrameCounter;
+	unsigned int AnimCounter;
+	void* DDSDataBuffer;
+	unsigned int TPKDataChunkSize;
+	unsigned int TPKDataChunkAlignSize;
+	unsigned int TPKDataChild1Size;
+	unsigned int TPKDataChild2Size;
+	unsigned int RelativeDDSDataOffset;
+	unsigned int TPKChild1Size;
+	unsigned int TPKChild2Size;
+	unsigned int TPKChild4Size;
+	unsigned int TPKChild5Size;
+	unsigned int TotalSize;
+	unsigned int TPKCapsuleSize;
+	unsigned int TPKChunkSize;
+	unsigned int TPKChunkAlignSize;
+	unsigned int TPKExtraCapsuleSize;
+	unsigned int TPKAnimChunkSize[0xFFFF];
+	unsigned int TPKAnimChild1Size[0xFFFF];
+	unsigned int TPKAnimChild2Size[0xFFFF];
+};
+
+unsigned int flp2(unsigned int x)
+{
+	x = x | (x >> 1);
+	x = x | (x >> 2);
+	x = x | (x >> 4);
+	x = x | (x >> 8);
+	x = x | (x >> 16);
+	return x - (x >> 1);
+}
+
+void swap(unsigned int *xp, unsigned int *yp)
+{
+	unsigned int temp = *xp;
+	*xp = *yp;
+	*yp = temp;
+}
+
+// A function to implement bubble sort 
+void bubbleSort(unsigned int arr[], unsigned int n)
+{
+	unsigned int i, j;
+	for (i = 0; i < n - 1; i++)
+
+		// Last i elements are already in place    
+		for (j = 0; j < n - i - 1; j++)
+			if (arr[j] > arr[j + 1])
+				swap(&arr[j], &arr[j + 1]);
+}
+
+bool bFileExists(const char* filename)
+{
+	FILE* fin = fopen(filename, "rb");
+	if (fin)
+	{
+		fclose(fin);
+		return true;
+	}
+	//perror("ERROR");
+	return false;
+}
+
+char* DuplicateFileName(const char* filename)
+{
+	unsigned int Counter = 1;
+	char DissectedPath[260];
+	char* fileext = (char*)strrchr(filename, '.');
+	do
+	{
+		strncpy(DissectedPath, filename, fileext - filename);
+		DissectedPath[fileext - filename] = '\0';
+		sprintf(DissectedPath + strlen(DissectedPath), "(%d)%s", Counter, fileext);
+		Counter++;
+	} while (bFileExists(DissectedPath));
+	return DissectedPath;
+}
+
+bool CheckIfValidSettingsFile(FILE *finput)
+{
+	unsigned long int oldoffset = ftell(finput);
+	char TempBuffer[32];
+	fgets(TempBuffer, 32, finput);
+	if (strncmp(TempBuffer, "[TPK]\n", 7) == 0)
+		return 1;
+	else
+		return 0;
+}
+
+bool bCheckIfVaildFile(const char* FileName)
+{
+	if (!bFileExists(FileName))
+		return false;
+
+	FILE *finput = fopen(FileName, "rb");
+	unsigned long int oldoffset = ftell(finput);
+	unsigned int Magic = 0;
+	unsigned int Size = 0;
+
+	fread(&Magic, 4, 1, finput);
+	fread(&Size, 4, 1, finput);
+
+	fclose(finput);
+	if (Magic != TPKCAPSULE_CHUNKID || Size == 0)
+	{
+		printf("%s Invalid file.\n", PRINTTYPE_ERROR);
+		return false;
+	}
+	return true;
+}
+
+int SpitSettingsFile(const char* OutFileName, TexStruct *InTexStruct, TPKToolInternalStruct *InTPKToolInternal, TPKAnimStruct *InTPKAnim)
+{
+	FILE *fout = fopen(OutFileName, "w");
+
+	fprintf(fout, "[TPK]\n");
+	fprintf(fout, "TypeName = %s\n", (*InTPKToolInternal).TPKTypeName);
+	fprintf(fout, "TypeVal = %d\n", (*InTPKToolInternal).TPKTypeValue);
+	fprintf(fout, "Path = %s\n", (*InTPKToolInternal).TPKPathName);
+	fprintf(fout, "Hash = %X\n", (*InTPKToolInternal).HashArray[0]);
+	fprintf(fout, "Animations = %d\n", (*InTPKToolInternal).AnimCounter);
+
+	for (unsigned int i = 0; i < (*InTPKToolInternal).AnimCounter; i++)
+	{
+		fprintf(fout, "\n[Anim%d]\n", i);
+		fprintf(fout, "Name = %s\n", InTPKAnim[i].Name);
+		fprintf(fout, "Hash = %X\n", InTPKAnim[i].Hash);
+		fprintf(fout, "Frames = %d\n", InTPKAnim[i].Frames);
+		fprintf(fout, "Framerate = %d\n", InTPKAnim[i].Framerate);
+		fprintf(fout, "Unknown1 = %X\n", InTPKAnim[i].Unknown1);
+		fprintf(fout, "Unknown2 = %X\n", InTPKAnim[i].Unknown2);
+		fprintf(fout, "Unknown3 = %X\n", InTPKAnim[i].Unknown3);
+		fprintf(fout, "Unknown4 = %X\n", InTPKAnim[i].Unknown4);
+		fprintf(fout, "Unknown5 = %X\n", InTPKAnim[i].Unknown5);
+		fprintf(fout, "Unknown6 = %X\n", InTPKAnim[i].Unknown6);
+		for (unsigned int j = 0; j < InTPKAnim[i].Frames; j++)
+			fprintf(fout, "Frame%d = %X\n", j, (*InTPKToolInternal).AnimFrameHashArray[i][j]);
+	}
+
+	for (unsigned int i = 0; i < (*InTPKToolInternal).TextureDataCount; i++)
+	{
+		fprintf(fout, "\n[%X]\n", InTexStruct[i].Child4.Hash);
+		fprintf(fout, "File = %s\n", InTexStruct[i].FilesystemPath);
+		fprintf(fout, "Name = %s\n", InTexStruct[i].TexName);
+		fprintf(fout, "Hash2 = %X\n", InTexStruct[i].Child4.Hash2);
+		//fprintf(fout, "TextureFlags = %X\n", InTexStruct[i].Child4.TexFlags);
+		fprintf(fout, "UnkByte1 = %X\n", InTexStruct[i].Child4.UnkByteVal1);
+		fprintf(fout, "UnkByte2 = %X\n", InTexStruct[i].Child4.UnkByteVal2);
+		fprintf(fout, "UnkByte3 = %X\n", InTexStruct[i].Child4.UnkByteVal3);
+		fprintf(fout, "Unknown1 = %X\n", InTexStruct[i].Child4.Unknown1);
+		fprintf(fout, "Unknown3 = %X\n", InTexStruct[i].Child4.Unknown3);
+		fprintf(fout, "Unknown4 = %X\n", InTexStruct[i].Child4.Unknown4);
+		fprintf(fout, "Unknown5 = %X\n", InTexStruct[i].Child4.Unknown5);
+		fprintf(fout, "Unknown6 = %X\n", InTexStruct[i].Child4.Unknown6);
+		fprintf(fout, "Unknown7 = %X\n", InTexStruct[i].Child4.Unknown7);
+		fprintf(fout, "Unknown8 = %X\n", InTexStruct[i].Child4.Unknown8);
+		fprintf(fout, "Unknown9 = %X\n", InTexStruct[i].Child4.Unknown9);
+		fprintf(fout, "Unknown10 = %X\n", InTexStruct[i].Child4.Unknown10);
+		fprintf(fout, "Unknown11 = %X\n", InTexStruct[i].Child4.Unknown11);
+		fprintf(fout, "Unknown12 = %X\n", InTexStruct[i].Child4.Unknown12);
+		fprintf(fout, "Unknown17 = %X\n", InTexStruct[i].Child4.Unknown17);
+		fprintf(fout, "Unknown18 = %X\n", InTexStruct[i].Child4.Unknown18);
+	}
+	fclose(fout);
+	return 1;
+}
+
+int OutputInfoToFile(const char* OutFileName, TexStruct *InTexStruct, TPKToolInternalStruct *InTPKToolInternal, GamePixelFormatStruct *InGamePixelFormat, TPKAnimStruct *InTPKAnim)
+{
+	FILE *fout = fopen(OutFileName, "w");;
+	fprintf(fout, "TPK info:\n");
+	fprintf(fout, "TPK type name: %s\n", (*InTPKToolInternal).TPKTypeName);
+	fprintf(fout, "TPK type value: %d\n", (*InTPKToolInternal).TPKTypeValue);
+	fprintf(fout, "TPK path: %s\n", (*InTPKToolInternal).TPKPathName);
+	for (unsigned int i = 0; i <= 6; i++)
+		fprintf(fout, "TPK hash array [%d] = %#08X\n", i, (*InTPKToolInternal).HashArray[i]);
+	for (unsigned int i = 0; i < (*InTPKToolInternal).TextureCategoryHashCount; i++)
+		fprintf(fout, "Texture %d hash: %#08X\n", i, (*InTPKToolInternal).TextureCategoryHashArray[i]);
+	fprintf(fout, "Total texture hash count: %d\n", (*InTPKToolInternal).TextureCategoryHashCount);
+	fprintf(fout, "\n");
+	fprintf(fout, "Textures:\n");
+	for (unsigned int i = 0; i < (*InTPKToolInternal).TextureDataCount; i++)
+	{
+		fprintf(fout, "\nTexture name: %s\n", InTexStruct[i].TexName);
+		fprintf(fout, "Hash: %#08X\n", InTexStruct[i].Child4.Hash);
+		fprintf(fout, "Hash2: %#08X\n", InTexStruct[i].Child4.Hash2);
+		fprintf(fout, "Data offset: %#08X\n", InTexStruct[i].Child4.DataOffset);
+		fprintf(fout, "Data size: %#08X\n", InTexStruct[i].Child4.DataSize);
+		fprintf(fout, "Unknown value 1: %#08X\n", InTexStruct[i].Child4.Unknown1);
+		fprintf(fout, "Scaler: %#08X\n", InTexStruct[i].Child4.Scaler);
+		fprintf(fout, "Width: %d\n", InTexStruct[i].Child4.ResX);
+		fprintf(fout, "Height: %d\n", InTexStruct[i].Child4.ResY);
+		fprintf(fout, "Mipmap count: %d\n", InTexStruct[i].Child4.MipmapCount);
+		fprintf(fout, "Unknown value 3: %X\n", InTexStruct[i].Child4.Unknown3);
+		//fprintf(fout, "Texture flags: %X\n", InTexStruct[i].Child4.TexFlags);
+		fprintf(fout, "Unknown value 4: %#08X\n", InTexStruct[i].Child4.Unknown4);
+		fprintf(fout, "Blending mode: %#08X\n", InTexStruct[i].Child4.Unknown5);
+		fprintf(fout, "Unknown value 6: %#08X\n", InTexStruct[i].Child4.Unknown6);
+		fprintf(fout, "Unknown value 7: %#08X\n", InTexStruct[i].Child4.Unknown7);
+		fprintf(fout, "Unknown value 8: %#08X\n", InTexStruct[i].Child4.Unknown8);
+		fprintf(fout, "Unknown value 9: %#08X\n", InTexStruct[i].Child4.Unknown9);
+		fprintf(fout, "Unknown value 10: %#08X\n", InTexStruct[i].Child4.Unknown10);
+		fprintf(fout, "Unknown value 11: %#08X\n", InTexStruct[i].Child4.Unknown11);
+		fprintf(fout, "Unknown value 12: %#08X\n", InTexStruct[i].Child4.Unknown12);
+		fprintf(fout, "Pixel format data:\n");
+		fprintf(fout, "Pixel format: %#08X\n", InGamePixelFormat[i].FourCC);
+		fprintf(fout, "Unknown pixel format value 1: %#08X\n", InGamePixelFormat[i].Unknown1);
+		fprintf(fout, "Unknown pixel format value 2: %#08X\n", InGamePixelFormat[i].Unknown2);
+		/*fprintf(fout, "Unknown pixel format value 3: %#08X\n", texture[i].GamePixelFormat.Unknown3);
+		fprintf(fout, "Unknown pixel format value 4: %#08X\n", texture[i].GamePixelFormat.Unknown4);
+		fprintf(fout, "Unknown pixel format value 5: %#08X\n", texture[i].GamePixelFormat.Unknown5);*/
+	}
+	fprintf(fout, "Total texture data entries: %d\n", (*InTPKToolInternal).TextureDataCount);
+	fprintf(fout, "\nAnimations:\n");
+	fprintf(fout, "Animation count: %d\n", (*InTPKToolInternal).AnimCounter);
+	for (unsigned int i = 0; i < (*InTPKToolInternal).AnimCounter; i++)
+	{
+		fprintf(fout, "\nAnimation %d:\n", i);
+		fprintf(fout, "Name: %s\n", InTPKAnim[i].Name);
+		fprintf(fout, "Hash: %X\n", InTPKAnim[i].Hash);
+		fprintf(fout, "Frames: %d\n", InTPKAnim[i].Frames);
+		fprintf(fout, "Framerate: %d FPS\n", InTPKAnim[i].Framerate);
+		fprintf(fout, "Unknown 1: %X\n", InTPKAnim[i].Unknown1);
+		fprintf(fout, "Unknown 2: %X\n", InTPKAnim[i].Unknown2);
+		fprintf(fout, "Unknown 3: %X\n", InTPKAnim[i].Unknown3);
+		fprintf(fout, "Unknown 4: %X\n", InTPKAnim[i].Unknown4);
+		fprintf(fout, "Unknown 5: %X\n", InTPKAnim[i].Unknown5);
+		fprintf(fout, "Unknown 6: %X\n", InTPKAnim[i].Unknown6);
+		for (unsigned int j = 0; j < InTPKAnim[i].Frames; j++)
+			fprintf(fout, "Frame %d hash: %X\n", j, (*InTPKToolInternal).AnimFrameHashArray[i][j]);
+	}
+	fclose(fout);
+	return 1;
+}
+
+
+int PrecalculateTotalSizes(TPKToolInternalStruct *InTPKToolInternal, TexStruct *InTexStruct, TPKAnimStruct *InTPKAnim)
+{
+	(*InTPKToolInternal).TPKChild1Size = SIZEOF_TPK_CHILD1;
+	(*InTPKToolInternal).TPKDataChild1Size = SIZEOF_TPK_DATA_CHILD1;
+	unsigned int TPKChunkEndOffset = 0;
+	printf("%s Precalculating chunk sizes...\n", PRINTTYPE_INFO);
+	(*InTPKToolInternal).TPKDataChunkSize = ((*InTPKToolInternal).TPKDataChild1Size + 8) + ((*InTPKToolInternal).TPKDataChild2Size + 8) + 0x58;
+	printf("%s Data chunk child 1 size: %X\n", PRINTTYPE_INFO, (*InTPKToolInternal).TPKDataChild1Size);
+	printf("%s Data chunk child 2 size: %X\n", PRINTTYPE_INFO, (*InTPKToolInternal).TPKDataChild2Size);
+	printf("%s Total data chunk size: %X\n", PRINTTYPE_INFO, (*InTPKToolInternal).TPKDataChunkSize);
+	for (unsigned int i = 0; i <= (*InTPKToolInternal).TextureCategoryHashCount - 1; i++)
+	{
+		if (WritingMode == TPKTOOL_WRITINGMODE_V2)
+		{
+			(*InTPKToolInternal).TPKChild5Size += SIZEOF_TPK_CHILD5_V2;
+			(*InTPKToolInternal).TPKChild4Size += SIZEOF_TPK_CHILD4_V2;
+		}
+		else
+		{
+			(*InTPKToolInternal).TPKChild5Size += SIZEOF_TPK_CHILD5;
+			(*InTPKToolInternal).TPKChild4Size += SIZEOF_TPK_CHILD4 + strlen(InTexStruct[i].TexName) + 1;
+		}
+
+		(*InTPKToolInternal).TPKChild2Size += SIZEOF_TPK_CHILD2;
+	}
+	if ((*InTPKToolInternal).AnimCounter)
+	{
+		for (unsigned int i = 0; i < (*InTPKToolInternal).AnimCounter; i++)
+		{
+			(*InTPKToolInternal).TPKAnimChild1Size[i] += 0x2C;
+			for (unsigned j = 0; j < InTPKAnim[i].Frames; j++)
+				(*InTPKToolInternal).TPKAnimChild2Size[i] += 0xC;
+			printf("%s TPK animation %d chunk child 1 size: %X\n", PRINTTYPE_INFO, i, (*InTPKToolInternal).TPKAnimChild1Size[i]);
+			printf("%s TPK animation %d chunk child 2 size: %X\n", PRINTTYPE_INFO, i, (*InTPKToolInternal).TPKAnimChild2Size[i]);
+			printf("%s TPK animation %d chunk size: %X\n", PRINTTYPE_INFO, i, (*InTPKToolInternal).TPKAnimChunkSize[i]);
+			(*InTPKToolInternal).TPKAnimChunkSize[i] = ((*InTPKToolInternal).TPKAnimChild1Size[i] + 8) + ((*InTPKToolInternal).TPKAnimChild2Size[i] + 8);
+			(*InTPKToolInternal).TPKExtraCapsuleSize += ((*InTPKToolInternal).TPKAnimChunkSize[i] + 8);
+		}
+		(*InTPKToolInternal).TPKChunkSize = ((*InTPKToolInternal).TPKChild1Size + 8) + ((*InTPKToolInternal).TPKChild2Size + 8) + ((*InTPKToolInternal).TPKChild4Size + 8) + ((*InTPKToolInternal).TPKChild5Size + 8) + ((*InTPKToolInternal).TPKExtraCapsuleSize + 8);
+		printf("%s TPK extra chunk size: %X\n", PRINTTYPE_INFO, (*InTPKToolInternal).TPKExtraCapsuleSize);
+	}
+	else
+		(*InTPKToolInternal).TPKChunkSize = ((*InTPKToolInternal).TPKChild1Size + 8) + ((*InTPKToolInternal).TPKChild2Size + 8) + ((*InTPKToolInternal).TPKChild4Size + 8) + ((*InTPKToolInternal).TPKChild5Size + 8);
+	printf("%s TPK chunk child 1 size: %X\n", PRINTTYPE_INFO, (*InTPKToolInternal).TPKChild1Size);
+	printf("%s TPK chunk child 2 size: %X\n", PRINTTYPE_INFO, (*InTPKToolInternal).TPKChild2Size);
+	printf("%s TPK chunk child 4 size: %X\n", PRINTTYPE_INFO, (*InTPKToolInternal).TPKChild4Size);
+	printf("%s TPK chunk child 5 size: %X\n", PRINTTYPE_INFO, (*InTPKToolInternal).TPKChild5Size);
+	printf("%s Total TPK chunk size: %X\n", PRINTTYPE_INFO, (*InTPKToolInternal).TPKChunkSize);
+
+	TPKChunkEndOffset = (*InTPKToolInternal).TPKChunkSize + 0x8 + 0x40;
+	(*InTPKToolInternal).TPKChunkAlignSize = (TPKChunkEndOffset - (TPKChunkEndOffset % 0x80)) + 0x100;
+	//TPKChunkAlignSize = (TPKChunkEndOffset - (TPKChunkEndOffset & 0xFF)) + 0x100;
+	(*InTPKToolInternal).TPKChunkAlignSize -= TPKChunkEndOffset + 8;
+
+	(*InTPKToolInternal).TPKCapsuleSize = ((*InTPKToolInternal).TPKChunkSize + 0x8 + ((*InTPKToolInternal).TPKChunkAlignSize + 0x8)) + ((*InTPKToolInternal).TPKDataChunkSize + 0x8) + 0x38; // TPK chunk has a zero chunk, sized 0x8, totalling in 0x10, TPK capsule has a zero chunk, sized 0x30, totalling 0x38
+	printf("%s Total TPK capsule size: %X\n", PRINTTYPE_INFO, (*InTPKToolInternal).TPKCapsuleSize);
+	(*InTPKToolInternal).TotalSize = (*InTPKToolInternal).TPKCapsuleSize + 8;
+	printf("%s Total file size: %X\n", PRINTTYPE_INFO, (*InTPKToolInternal).TotalSize);
+	return 1;
+}
+
+int WriteDDSDataToFile(const char* InFileName, FILE *fout)
+{
+	unsigned long int Filesize = 0;
+	printf("%s Allocating a buffer and writing %s\n", PRINTTYPE_INFO, InFileName);
+	FILE *fin = fopen(InFileName, "rb");
+	if (fin == NULL)
+	{
+		perror("ERROR ");
+		return -1;
+	}
+	fseek(fin, 0, SEEK_END); // WRONG WRONG WRONG WRONG WRONG WRONG WRONG WRONG, rewrite to filesystem stat!
+	Filesize = ftell(fin) - 0x80;
+	fseek(fin, 0x80, SEEK_SET);
+	void* InputFileBuffer = malloc(sizeof(char) * Filesize);
+	fread(InputFileBuffer, sizeof(char), Filesize, fin);
+	fwrite(InputFileBuffer, sizeof(char), Filesize, fout);
+	free(InputFileBuffer);
+	fclose(fin);
+	return 1;
+}
