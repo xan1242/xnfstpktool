@@ -220,6 +220,16 @@ int main(int argc, char *argv[])
 			printf("%s Going into PS3 mode!\n", PRINTTYPE_INFO);
 			WritingMode = TPKTOOL_WRITINGMODE_PLAT_PS3;
 		}
+		else if (strncmp(argv[1] + 2, "360", 3) == 0)
+		{
+			printf("%s Going into 360 mode!\n", PRINTTYPE_INFO);
+			WritingMode = TPKTOOL_WRITINGMODE_PLAT_360;
+		}
+		else if (strncmp(argv[1] + 2, "360-2", 5) == 0)
+		{
+			printf("%s Going into 360 TPKv2 mode!\n", PRINTTYPE_INFO);
+			WritingMode = TPKTOOL_WRITINGMODE_PLAT_V2_360;
+		}
 	}
 
 	if (strncmp(argv[1], "-2", 2) == 0)
@@ -232,6 +242,18 @@ int main(int argc, char *argv[])
 	{
 		printf("%s Going into PS3 mode!\n", PRINTTYPE_INFO);
 		ReadingMode = TPKTOOL_READINGMODE_PLAT_PS3;
+	}
+
+	else if (strncmp(argv[1], "-360", 6) == 0)
+	{
+		printf("%s Going into 360 mode!\n", PRINTTYPE_INFO);
+		ReadingMode = TPKTOOL_READINGMODE_PLAT_360;
+	}
+
+	else if (strncmp(argv[1], "-360-2", 6) == 0)
+	{
+		printf("%s Going into 360 TPKv2 mode!\n", PRINTTYPE_INFO);
+		ReadingMode = TPKTOOL_READINGMODE_PLAT_V2_360;
 	}
 
 	if (WritingMode)

@@ -117,7 +117,7 @@ int OutputDDSFromMemory(const char* OutFilePath, unsigned int TexNumber, void* D
 
 int ReadingMode = 0;
 
-int OutputDDS(FILE *finput, const char* OutFilePath, unsigned int TexNumber, unsigned int RelativeStart, TPKToolInternalStruct *OutTPKToolInternal, GamePixelFormatStruct *OutGamePixelFormat, TexStruct *OutTexStruct)
+int OutputDDS(FILE *finput, const char* OutFilePath, unsigned int TexNumber, unsigned int RelativeStart, TPKToolInternalStruct *OutTPKToolInternal, GamePixelFormatStruct *OutGamePixelFormat, TexStruct *OutTexStruct, bool bByteSwap)
 {
 	struct DirectX::DDS_HEADER DDSHeaderStruct = { 0 };
 	struct DirectX::DDS_PIXELFORMAT DDSPixelFormatStruct = { 0 };
@@ -156,8 +156,13 @@ int OutputDDS(FILE *finput, const char* OutFilePath, unsigned int TexNumber, uns
 	fwrite(&DDSMagic, 4, 1, fout);
 	//fseek(fout, 4, SEEK_CUR);
 	fwrite(&DDSHeaderStruct, sizeof(DDSHeaderStruct), 1, fout);
+	if (bByteSwap)
+	{
+		ByteSwapBuffer_Short((*OutTPKToolInternal).DDSDataBuffer, OutTexStruct[TexNumber].Child4.DataSize);
+		Deswizzle((*OutTPKToolInternal).DDSDataBuffer, OutTexStruct[TexNumber].Child4.ResX, OutTexStruct[TexNumber].Child4.ResY, OutTexStruct[TexNumber].Child4.MipmapCount, DDSPixelFormatStruct.dwFourCC);
+		OutTexStruct[TexNumber].Child4.DataSize = Deswizzle_RecalculateSize(OutTexStruct[TexNumber].Child4.ResX, OutTexStruct[TexNumber].Child4.ResY, DDSPixelFormatStruct.dwFourCC);
+	}
 	fwrite((*OutTPKToolInternal).DDSDataBuffer, sizeof(char), OutTexStruct[TexNumber].Child4.DataSize, fout);
-
 	free((*OutTPKToolInternal).DDSDataBuffer);
 
 	fclose(fout);
@@ -178,7 +183,7 @@ int ZeroChunkReader(FILE *finput, unsigned int ChunkSize)
 	return 1;
 }
 
-int TPKDataChildType2Reader(FILE *finput, unsigned int ChunkSize, const char* OutFolderPath, TPKToolInternalStruct *OutTPKToolInternal, GamePixelFormatStruct *OutGamePixelFormat, TexStruct *OutTexStruct)
+int TPKDataChildType2Reader(FILE *finput, unsigned int ChunkSize, const char* OutFolderPath, TPKToolInternalStruct *OutTPKToolInternal, GamePixelFormatStruct *OutGamePixelFormat, TexStruct *OutTexStruct, bool bByteSwap)
 {
 	struct stat st = { 0 }; // filestat for folder existence
 	char InputFilePath[1024];
@@ -186,7 +191,17 @@ int TPKDataChildType2Reader(FILE *finput, unsigned int ChunkSize, const char* Ou
 	strcpy(InputFilePath, OutFolderPath);
 	unsigned int RelativeEnd = ftell(finput) + ChunkSize;
 	printf("TPK Data Child 2 size: %X\n", ChunkSize);
-	fseek(finput, 0x78, SEEK_CUR);
+	if (bByteSwap)
+		printf("Byteswapping enabled.\n");
+
+	unsigned short int Padding = 0;
+
+	do
+	{
+		fread(&Padding, sizeof(short int), 1, finput);
+	} while (Padding == 0x1111);
+
+	fseek(finput, -2, SEEK_CUR); // moving back to where the data is...
 	unsigned int RelativeStart = ftell(finput);
 	sprintf(TPKHashPathString, "%X", (*OutTPKToolInternal).HashArray[0]);
 
@@ -218,7 +233,7 @@ int TPKDataChildType2Reader(FILE *finput, unsigned int ChunkSize, const char* Ou
 		}
 
 		printf("Outputting %s\n", (*OutTPKToolInternal).TotalFilePath);
-		OutputDDS(finput, (*OutTPKToolInternal).TotalFilePath, i, RelativeStart, OutTPKToolInternal, OutGamePixelFormat, OutTexStruct);
+		OutputDDS(finput, (*OutTPKToolInternal).TotalFilePath, i, RelativeStart, OutTPKToolInternal, OutGamePixelFormat, OutTexStruct, bByteSwap);
 
 		strcpy(OutTexStruct[i].FilesystemPath, (*OutTPKToolInternal).TotalFilePath);
 		fseek(finput, OutTexStruct[i].Child4.DataSize, SEEK_CUR);
@@ -263,7 +278,10 @@ int TPKDataChunkReader(FILE *finput, unsigned int ChunkSize, const char* OutFold
 			TPKDataChildType1Reader(finput, Size, OutTPKLink);
 			break;
 		case TPKDATA_CHILD2_CHUNKID:
-			TPKDataChildType2Reader(finput, Size, OutFolderPath, OutTPKToolInternal, OutGamePixelFormat, OutTexStruct);
+			TPKDataChildType2Reader(finput, Size, OutFolderPath, OutTPKToolInternal, OutGamePixelFormat, OutTexStruct, false);
+			break;
+		case TPKDATA_CHILD3_CHUNKID: // byteswapped
+			TPKDataChildType2Reader(finput, Size, OutFolderPath, OutTPKToolInternal, OutGamePixelFormat, OutTexStruct, true);
 			break;
 		default:
 			printf("Skipping chunk type %X size %X\n", Magic, Size);
@@ -368,6 +386,50 @@ int TPKChildType5Reader(FILE *finput, unsigned int ChunkSize, GamePixelFormatStr
 		fread(&texture[TexturePixelFormatCounter].GamePixelFormat.Unknown5, 4, 1, finput);*/
 		TexturePixelFormatCounter++;
 	}
+	return 1;
+}
+
+int TPK_v2_360_ChildType5Reader(FILE *finput, unsigned int ChunkSize, GamePixelFormatStruct *OutGamePixelFormat, TexStruct* OutTexStruct)
+{
+	unsigned int TexturePixelFormatCounter = 0;
+
+	TPKChild5Struct_v2_360* GamePixelFormatBridge = (TPKChild5Struct_v2_360*)calloc(1, sizeof(TPKChild5Struct_v2_360));
+
+	unsigned int RelativeEnd = ftell(finput) + ChunkSize;
+	printf("TPK Child 5 size: %X\n", ChunkSize);
+	while (ftell(finput) < RelativeEnd)
+	{
+		fread(GamePixelFormatBridge, sizeof(TPKChild5Struct_v2_360), 1, finput);
+
+		switch ((*GamePixelFormatBridge).SomeVal3)
+		{
+		case 0x18280186:
+			// RGBA
+			OutGamePixelFormat[TexturePixelFormatCounter].FourCC = 0x15;
+			break;
+		case 0x1A200152:
+			// DXT1
+			OutGamePixelFormat[TexturePixelFormatCounter].FourCC = 0x31545844;
+			break;
+		case 0x1A200153:
+			// DXT3
+			OutGamePixelFormat[TexturePixelFormatCounter].FourCC = 0x33545844;
+			break;
+		case 0x1A200154:
+			// DXT5
+			OutGamePixelFormat[TexturePixelFormatCounter].FourCC = 0x35545844;
+			break;
+		default:
+			// idk
+			OutGamePixelFormat[TexturePixelFormatCounter].FourCC = 0x15;
+			break;
+		}
+
+		TexturePixelFormatCounter++;
+	}
+
+	free(GamePixelFormatBridge);
+
 	return 1;
 }
 
@@ -869,24 +931,49 @@ int TPKChunkReader(FILE *finput, unsigned int ChunkSize, TexStruct *OutTexStruct
 			TPKChildType2Reader(finput, Size, OutTPKToolInternal);
 			break;
 		case TPK_CHILD3_CHUNKID:
-			if (ReadingMode == TPKTOOL_READINGMODE_V2)
+			switch (ReadingMode)
+			{
+			case TPKTOOL_READINGMODE_V2:
 				TPK_v2_ChildType3Reader(finput, Size, OutTPKToolInternal, OutTexStruct, OutGamePixelFormat);
-			else
+				break;
+			case TPKTOOL_READINGMODE_PLAT_V2_360:
+				TPK_v2_ChildType3Reader(finput, Size, OutTPKToolInternal, OutTexStruct, OutGamePixelFormat);
+				break;
+			default:
 				TPKChildType3Reader(finput, Size, OutTPKToolInternal, OutTexStruct, OutGamePixelFormat);
+				break;
+			}
 			break;
 		case TPK_CHILD4_CHUNKID:
-			if (ReadingMode == TPKTOOL_READINGMODE_V2)
+			switch (ReadingMode)
+			{
+			case TPKTOOL_READINGMODE_V2:
 				TPK_v2_ChildType4Reader(finput, Size, OutTexStruct, OutTPKToolInternal);
-			else
+				break;
+			case TPKTOOL_READINGMODE_PLAT_V2_360:
+				TPK_v2_ChildType4Reader(finput, Size, OutTexStruct, OutTPKToolInternal);
+				break;
+			default:
 				TPKChildType4Reader(finput, Size, OutTexStruct, OutTPKToolInternal);
+				break;
+			}
 			break;
 		case TPK_CHILD5_CHUNKID:
-			if (ReadingMode == TPKTOOL_READINGMODE_V2)
+			switch (ReadingMode)
+			{
+			case TPKTOOL_READINGMODE_V2:
 				TPK_v2_ChildType5Reader(finput, Size, OutGamePixelFormat, OutTexStruct);
-			else if (ReadingMode == TPKTOOL_READINGMODE_PLAT_PS3)
+				break;
+			case TPKTOOL_READINGMODE_PLAT_PS3:
 				TPK_PS3_ChildType5Reader(finput, Size, OutGamePixelFormat, OutTexStruct);
-			else
+				break;
+			case TPKTOOL_READINGMODE_PLAT_V2_360:
+				TPK_v2_360_ChildType5Reader(finput, Size, OutGamePixelFormat, OutTexStruct);
+				break;
+			default:
 				TPKChildType5Reader(finput, Size, OutGamePixelFormat);
+				break;
+			}
 			break;
 		case TPK_EXTRACAPSULE_CHUNKID:
 			TPKExtraChunkReader(finput, Size, OutTPKAnim, OutTPKToolInternal);

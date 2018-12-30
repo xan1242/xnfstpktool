@@ -46,19 +46,29 @@
 #define TPKTOOL_READINGMODE_PLAT_PS3 3 
 #define TPKTOOL_WRITINGMODE_PLAT_PS3 3
 
+// 360 supports TPK minver 5 (TPKv2 as I called it here, version detection will be added at a later point)
+#define TPKTOOL_READINGMODE_PLAT_V2_360 4
+#define TPKTOOL_WRITINGMODE_PLAT_V2_360 4
+#define TPKTOOL_READINGMODE_PLAT_360 5
+#define TPKTOOL_WRITINGMODE_PLAT_360 5
+
 #define TPKTOOL_HELPMESSAGE "\
 Usage: [-w/-h/-?] InFile OutFile\n\n\
 Default: InFile = TPK file | OutFile = Output folder path\n\
 -2     : TPK v2 mode (UG2 & MW), InFile = TPK file | OutFile = Output folder path\n\
 -PS3   : PS3 mode (TPK v3 only), InFile = TPK file | OutFile = Output folder path\n\
+-360   : 360 mode (TPK v3), InFile = TPK file | OutFile = Output folder path\n\
+-360-2 : 360 mode (TPK v2), InFile = TPK file | OutFile = Output folder path\n\
 -w     : Writing mode (TPK v3), InFile = TPK settings ini file | OutFile = Output file name\n\
 -w2    : Writing mode (TPK v2), InFile = TPK settings ini file | OutFile = Output file name\n\
 -wPS3  : Writing mode (PS3 TPK v3), InFile = TPK settings ini file | OutFile = Output file name\n\
+-w360  : Writing mode (360 TPK v3), InFile = TPK settings ini file | OutFile = Output file name\n\
+-w360-2: Writing mode (360 TPK v2), InFile = TPK settings ini file | OutFile = Output file name\n\
 -h/-?  : Show this help message\n\
 \nDDS files are extracted to their respective TPK hash directory.\n\
 Compressed TPKs are NOT fully supported yet.\n\
 Carbon / ProStreet / MW / UG2 / UG1 are currently only supported!\n\
-While this tool can extract data for other platforms, it only fully works with PC! PS3 support WIP!"
+While this tool can extract data for other platforms, it only fully works with PC! PS3 & 360 support WIP!"
 
 #define PRINTTYPE_ERROR "ERROR:"
 #define PRINTTYPE_INFO "INFO:"
@@ -86,6 +96,16 @@ struct TPKChild5Struct_PS3
 	unsigned char PixelFormatVal2; // DXT1 = 3, DXT5 = 3, RGBA = 1, DXT3 = unknown, P8 = unknown
 	unsigned char PixelFormatVal3; // DXT1 = 3, DXT5 = 3, RGBA = 0, DXT3 = unknown, P8 = unknown
 	unsigned char Unknown3[0x1A]; // all = 0
+};
+
+struct TPKChild5Struct_v2_360
+{
+	unsigned char Unknown1[8];
+	unsigned int PixelFormatVal1; // 1
+	unsigned int SomeVal1; // 6 = DXT5
+	unsigned int SomeVal2; // 1 = DXT5, ARGB, DXT3, 7 = ARGB or some other RGB?
+	unsigned int SomeVal3; // 0x1A200154 = DXT5, 0x18280186 = RGBA, 0x1A200152 = DXT1, 0x1A200153 = DXT3, maybe not 32 bits, simplified for the sake of testing
+	unsigned char Unknown2[8];
 };
 
 struct GamePixelFormatStruct_v2 // temporary storage for unknown stuff
@@ -517,15 +537,28 @@ int PrecalculateTotalSizes(TPKToolInternalStruct *InTPKToolInternal, TexStruct *
 	printf("%s Total data chunk size: %X\n", PRINTTYPE_INFO, (*InTPKToolInternal).TPKDataChunkSize);
 	for (unsigned int i = 0; i <= (*InTPKToolInternal).TextureCategoryHashCount - 1; i++)
 	{
-		if (WritingMode == TPKTOOL_WRITINGMODE_V2)
+		switch (WritingMode)
 		{
-			(*InTPKToolInternal).TPKChild5Size += SIZEOF_TPK_CHILD5_V2;
-			(*InTPKToolInternal).TPKChild4Size += SIZEOF_TPK_CHILD4_V2;
-		}
-		else
-		{
-			(*InTPKToolInternal).TPKChild5Size += SIZEOF_TPK_CHILD5;
-			(*InTPKToolInternal).TPKChild4Size += SIZEOF_TPK_CHILD4 + strlen(InTexStruct[i].TexName) + 1;
+		case TPKTOOL_WRITINGMODE_V2:
+			(*InTPKToolInternal).TPKChild5Size += sizeof(GamePixelFormatStruct_v2);
+			(*InTPKToolInternal).TPKChild4Size += sizeof(TPKChild4Struct_TPKv2);
+			break;
+		case TPKTOOL_WRITINGMODE_PLAT_V2_360:
+			(*InTPKToolInternal).TPKChild5Size += sizeof(TPKChild5Struct_v2_360);
+			(*InTPKToolInternal).TPKChild4Size += sizeof(TPKChild4Struct_TPKv2);
+			break;
+		case TPKTOOL_WRITINGMODE_PLAT_PS3:
+			(*InTPKToolInternal).TPKChild5Size += sizeof(TPKChild5Struct_PS3);
+			(*InTPKToolInternal).TPKChild4Size += sizeof(TPKChild4Struct) + strlen(InTexStruct[i].TexName) + 1;
+			break;
+		case TPKTOOL_WRITINGMODE_PLAT_360: // TODO
+			(*InTPKToolInternal).TPKChild5Size += sizeof(GamePixelFormatStruct);
+			(*InTPKToolInternal).TPKChild4Size += sizeof(TPKChild4Struct) + strlen(InTexStruct[i].TexName) + 1;
+			break;
+		default:
+			(*InTPKToolInternal).TPKChild5Size += sizeof(GamePixelFormatStruct);
+			(*InTPKToolInternal).TPKChild4Size += sizeof(TPKChild4Struct) + strlen(InTexStruct[i].TexName) + 1;
+			break;
 		}
 
 		(*InTPKToolInternal).TPKChild2Size += SIZEOF_TPK_CHILD2;
@@ -585,4 +618,186 @@ int WriteDDSDataToFile(const char* InFileName, FILE *fout)
 	free(InputFileBuffer);
 	fclose(fin);
 	return 1;
+}
+
+int ByteSwapBuffer_Short(void* buffer, unsigned int size)
+{
+	unsigned int CurrentPos = (unsigned int)buffer;
+	unsigned short CurrentValue;
+
+	while (CurrentPos < ((unsigned int)buffer + size))
+	{
+		CurrentValue = _byteswap_ushort(*(unsigned short*)(CurrentPos));
+		*(unsigned short*)(CurrentPos) = CurrentValue;
+		CurrentPos += sizeof(short);
+	}
+
+	return 0;
+}
+
+// 360 deswizzling stuff
+// source from: https://github.com/emoose/FtexTool (thanks!)
+// converted to C / C++ by me
+// will add swizzlers later on...
+int Align(int ptr, int alignment)
+{
+	return ((ptr + alignment - 1) & ~(alignment - 1));
+}
+
+int appLog2(int n)
+{
+	int r;
+	int n2 = n;
+	for (r = -1; n2 != 0; n2 >>= 1, r++)
+	{ /*empty*/
+	}
+	return r;
+}
+
+int GetTiledOffset(int x, int y, int width, int logBpb)
+{
+	int alignedWidth = Align(width, 32);
+	// top bits of coordinates
+	int macro = ((x >> 5) + (y >> 5) * (alignedWidth >> 5)) << (logBpb + 7);
+	// lower bits of coordinates (result is 6-bit value)
+	int micro = ((x & 7) + ((y & 0xE) << 2)) << logBpb;
+	// mix micro/macro + add few remaining x/y bits
+	int offset = macro + ((micro & ~0xF) << 1) + (micro & 0xF) + ((y & 1) << 4);
+	// mix bits again
+	return (((offset & ~0x1FF) << 3) +					// upper bits (offset bits [*-9])
+		((y & 16) << 7) +							// next 1 bit
+		((offset & 0x1C0) << 2) +					// next 3 bits (offset bits [8-6])
+		(((((y & 8) >> 2) + (x >> 3)) & 3) << 6) +	// next 2 bits
+		(offset & 0x3F)								// lower 6 bits (offset bits [5-0])
+		) >> logBpb;
+}
+
+void* UntileCompressedX360Texture(void* data, unsigned int datasize, int tiledWidth, int originalWidth, int height, int blockSizeX, int blockSizeY, int bytesPerBlock)
+{
+	void* OutputBuffer = malloc(datasize);
+
+	int blockWidth = tiledWidth / blockSizeX;
+	int originalBlockWidth = originalWidth / blockSizeX;
+	int blockHeight = height / blockSizeY;
+	int logBpp = appLog2(bytesPerBlock);
+
+	for (int y = 0; y < blockHeight; y++)
+	{
+		for (int x = 0; x < originalBlockWidth; x++)
+		{
+			int addr = GetTiledOffset(x, y, blockWidth, logBpp);
+
+			int sy = addr / blockWidth;
+			int sx = addr % blockWidth;
+
+			int dstAddr = (y * originalBlockWidth + x) * bytesPerBlock;
+			int srcAddr = (sy * blockWidth + sx) * bytesPerBlock;
+
+			memcpy((void*)((int)OutputBuffer + dstAddr), (void*)((int)data + srcAddr), bytesPerBlock);
+		}
+	}
+	return OutputBuffer;
+}
+
+void* Deswizzle(void* data, int width, int height, int numMipMaps, unsigned int FourCC)
+{
+	bool found = false;
+
+	int BlockSizeX;
+	int BlockSizeY;
+	int bytesPerBlock;
+	int X360AlignX;
+	int X360AlignY;
+
+
+	switch (FourCC)
+	{
+	case 0x31545844:
+		BlockSizeX = 4;
+		BlockSizeY = 4;
+		X360AlignX = 128;
+		X360AlignY = 128;
+		bytesPerBlock = 8;
+		found = true;
+		break;
+	case 0x33545844:
+	case 0x35545844:
+		BlockSizeX = 4;
+		BlockSizeY = 4;
+		X360AlignX = 128;
+		X360AlignY = 128;
+		bytesPerBlock = 16;
+		found = true;
+		break;
+	default:
+		// using RGBA8 here...
+		BlockSizeX = 1;
+		BlockSizeY = 1;
+		X360AlignX = 32;
+		X360AlignY = 32;
+		bytesPerBlock = 4;
+		break;
+	}
+
+	int curAddr = 0;
+	for (int i = 0; i < numMipMaps; i++)
+	{
+		int width1 = Align(width, X360AlignX);
+		int height1 = Align(height, X360AlignY);
+
+		int size = (width1 / BlockSizeX) * (height1 / BlockSizeY) * bytesPerBlock;
+
+		void* mipMapData = malloc(size);
+		memcpy(mipMapData, (void*)((unsigned int)data + curAddr), size);
+		//Array.Copy(data, curAddr, mipMapData, 0, size);
+		mipMapData = UntileCompressedX360Texture(mipMapData, size, width1, width, height1, BlockSizeX, BlockSizeY, bytesPerBlock);
+		memcpy((void*)((unsigned int)data + curAddr), mipMapData, size);
+		//Array.Copy(mipMapData, 0, data, curAddr, size);
+
+		curAddr += size;
+		width /= 2;
+		height /= 2;
+	}
+
+	return data;
+}
+
+int Deswizzle_RecalculateSize(int width, int height, unsigned int FourCC)
+{
+
+	int BlockSizeX;
+	int BlockSizeY;
+	int bytesPerBlock;
+	int X360AlignX;
+	int X360AlignY;
+
+	switch (FourCC)
+	{
+	case 0x31545844:
+		BlockSizeX = 4;
+		BlockSizeY = 4;
+		X360AlignX = 128;
+		X360AlignY = 128;
+		bytesPerBlock = 8;
+		break;
+	case 0x33545844:
+	case 0x35545844:
+		BlockSizeX = 4;
+		BlockSizeY = 4;
+		X360AlignX = 128;
+		X360AlignY = 128;
+		bytesPerBlock = 16;
+		break;
+	default:
+		// using RGBA8 here...
+		BlockSizeX = 1;
+		BlockSizeY = 1;
+		X360AlignX = 32;
+		X360AlignY = 32;
+		bytesPerBlock = 4;
+		break;
+	}
+	int size = (width / BlockSizeX) * (height / BlockSizeY) * bytesPerBlock;
+
+	return size;
 }

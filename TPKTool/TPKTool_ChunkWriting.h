@@ -151,6 +151,48 @@ int TPKChildType5Writer(FILE *fout, unsigned int ChunkSize, TPKToolInternalStruc
 	return 1;
 }
 
+int TPK_v2_360_ChildType5Writer(FILE *fout, unsigned int ChunkSize, TPKToolInternalStruct *InTPKToolInternal, GamePixelFormatStruct *InGamePixelFormat)
+{
+	printf("%s Writing TPK child 5 chunk: %X bytes\n", PRINTTYPE_INFO, ChunkSize);
+
+	TPKChild5Struct_v2_360* GamePixelFormatBridge = (TPKChild5Struct_v2_360*)calloc(1, sizeof(TPKChild5Struct_v2_360));
+
+	(*GamePixelFormatBridge).PixelFormatVal1 = 1;
+	(*GamePixelFormatBridge).SomeVal1 = 6;
+	(*GamePixelFormatBridge).SomeVal1 = 1; // NOT ALWAYS TRUE
+
+	WriteChunkTypeAndSize(fout, TPK_CHILD5_CHUNKID, ChunkSize);
+	for (unsigned int i = 0; i < (*InTPKToolInternal).TextureCategoryHashCount; i++)
+	{
+
+
+		switch (InGamePixelFormat[i].FourCC)
+		{
+		case 0x15:
+			(*GamePixelFormatBridge).SomeVal3 = 0x18280186; // NOT ALWAYS TRUE
+			break;
+		case 0x31545844:
+			(*GamePixelFormatBridge).SomeVal3 = 0x1A200152;
+			break;
+		case 0x33545844:
+			(*GamePixelFormatBridge).SomeVal3 = 0x1A200153;
+			break;
+		case 0x35545844:
+			(*GamePixelFormatBridge).SomeVal3 = 0x1A200154;
+			break;
+		default:
+			(*GamePixelFormatBridge).SomeVal3 = 0x18280186;
+			break;
+		}
+
+		fwrite(GamePixelFormatBridge, sizeof(TPKChild5Struct_v2_360), 1, fout);
+	}
+
+	free(GamePixelFormatBridge);
+
+	return 1;
+}
+
 int TPK_PS3_ChildType5Writer(FILE *fout, unsigned int ChunkSize, TPKToolInternalStruct *InTPKToolInternal, GamePixelFormatStruct *InGamePixelFormat)
 {
 	printf("%s Writing TPK child 5 chunk: %X bytes\n", PRINTTYPE_INFO, ChunkSize);
@@ -279,20 +321,24 @@ int TPKChunkWriter(FILE *fout, unsigned int ChunkSize, TPKToolInternalStruct *In
 	TPKChildType2Writer(fout, (*InTPKToolInternal).TPKChild2Size, InTPKToolInternal, InTexStruct);
 	//TPKChildType4Writer(fout, (*InTPKToolInternal).TPKChild4Size, InTPKToolInternal, InTexStruct);
 
-	if (WritingMode == TPKTOOL_WRITINGMODE_V2)
+	switch(WritingMode)
 	{
+	case TPKTOOL_WRITINGMODE_V2:
 		TPK_v2_ChildType4Writer(fout, (*InTPKToolInternal).TPKChild4Size, InTPKToolInternal, InTexStruct);
 		TPK_v2_ChildType5Writer(fout, (*InTPKToolInternal).TPKChild5Size, InTPKToolInternal, InGamePixelFormat);
-	}
-	else if (WritingMode == TPKTOOL_WRITINGMODE_PLAT_PS3)
-	{
+		break;
+	case TPKTOOL_WRITINGMODE_PLAT_V2_360:
+		TPK_v2_ChildType4Writer(fout, (*InTPKToolInternal).TPKChild4Size, InTPKToolInternal, InTexStruct);
+		TPK_v2_360_ChildType5Writer(fout, (*InTPKToolInternal).TPKChild5Size, InTPKToolInternal, InGamePixelFormat);
+		break;
+	case TPKTOOL_WRITINGMODE_PLAT_PS3:
 		TPKChildType4Writer(fout, (*InTPKToolInternal).TPKChild4Size, InTPKToolInternal, InTexStruct);
 		TPK_PS3_ChildType5Writer(fout, (*InTPKToolInternal).TPKChild5Size, InTPKToolInternal, InGamePixelFormat);
-	}
-	else
-	{
+		break;
+	default:
 		TPKChildType4Writer(fout, (*InTPKToolInternal).TPKChild4Size, InTPKToolInternal, InTexStruct);
 		TPKChildType5Writer(fout, (*InTPKToolInternal).TPKChild5Size, InTPKToolInternal, InGamePixelFormat);
+		break;
 	}
 
 	if ((*InTPKToolInternal).AnimCounter)
@@ -305,7 +351,7 @@ int TPKDataChildType2Writer(FILE *fout, unsigned int ChunkSize, TPKToolInternalS
 	printf("%s Writing TPK data child 2 chunk: %X bytes\n", PRINTTYPE_INFO, ChunkSize);
 	WriteChunkTypeAndSize(fout, TPKDATA_CHILD2_CHUNKID, ChunkSize);
 
-	for (unsigned int i = 0; i <= 0x77; i++)
+	for (unsigned int i = 0; i <= 0x77; i++) // THIS NEEDS WORK FOR 360!!
 		fputc(0x11, fout);
 	for (unsigned int i = 0; i < (*InTPKToolInternal).TextureCategoryHashCount; i++)
 		WriteDDSDataToFile(InTexStruct[i].FilesystemPath, fout);
