@@ -190,24 +190,24 @@ bool bDoFileChecks(const char* Filename)
 int main(int argc, char *argv[])
 {
 	TPKToolInternalStruct *TPKToolStuff = (TPKToolInternalStruct*)calloc(1, sizeof(TPKToolInternalStruct));
+	struct stat st = { 0 }; // filestat for folder existence
 
 #ifdef TPKTOOL_WIPVER
 	printf("Xanvier's NFS TPK Tool version %d !WIP!\nIf you have this version, you're naughty.\n\n", TPKTOOL_VERSION);
 #else
 	printf("Xanvier's NFS TPK Tool version %d\n\n", TPKTOOL_VERSION);
 #endif
-	if (argc <= 2)
+
+	if (argc <= 1)
 	{
-		if (argv[1] != NULL)
-		{
-			if (strncmp(argv[1], "-h", 2) == 0 || strncmp(argv[1], "-?", 2) == 0)
-			{
-				puts(TPKTOOL_HELPMESSAGE);
-				return 0;
-			}
-		}
-		printf("%s Too few / wrong arguments passed.\nUsage: [-w/-h/-?] InFile OutFile\nFor help pass -h or -?\n", PRINTTYPE_ERROR);
+		printf("%s Too few / wrong arguments passed.\nUsage: [-w/-h/-?] InFile [OutFile]\nFor help pass -h or -?\n", PRINTTYPE_ERROR);
 		return -1;
+	}
+
+	if (strncmp(argv[1], "-h", 2) == 0 || strncmp(argv[1], "-?", 2) == 0)
+	{
+		puts(TPKTOOL_HELPMESSAGE);
+		return 0;
 	}
 
 	if (strncmp(argv[1], "-w", 2) == 0)
@@ -283,20 +283,62 @@ int main(int argc, char *argv[])
 			return -1;
 	}
 
-	strcpy((*TPKToolStuff).TotalFilePath, argv[argc - 1]);
+	//strcpy((*TPKToolStuff).TotalFilePath, argv[argc - 1]);
+	
 	//strcpy(OutputFilePath, argv[argc - 1]);
-	if (ReadingMode)
-		MasterChunkReader(argv[2], argv[argc - 1], TPKToolStuff, texture, GamePixelFormat, TPKAnim, &TPKLink);
-	else
-		MasterChunkReader(argv[1], argv[argc - 1], TPKToolStuff, texture, GamePixelFormat, TPKAnim, &TPKLink);
 
-	strcpy((*TPKToolStuff).TotalFilePath, argv[argc - 1]);
+	if (ReadingMode)
+	{
+		if (argc == 3)
+		{
+			strncpy((*TPKToolStuff).OutputPath, argv[2], strrchr(argv[2], '.') - argv[2]);
+		}
+		else 
+		{
+			strcpy((*TPKToolStuff).OutputPath, argv[argc - 1]);
+		}
+
+		if (stat((*TPKToolStuff).OutputPath, &st) == -1)
+		{
+			// not cross-platform compatible, i know...
+			printf("Making directory %s\n", (*TPKToolStuff).OutputPath);
+			sprintf((*TPKToolStuff).TotalFilePath, "md %s\0", (*TPKToolStuff).OutputPath);
+			system((*TPKToolStuff).TotalFilePath);
+			//_mkdir(InputFilePath);
+		}
+
+		strcpy((*TPKToolStuff).TotalFilePath, (*TPKToolStuff).OutputPath);
+		MasterChunkReader(argv[2], (*TPKToolStuff).OutputPath, TPKToolStuff, texture, GamePixelFormat, TPKAnim, &TPKLink);
+	}
+	else
+	{
+		if (argc == 2)
+		{
+			strncpy((*TPKToolStuff).OutputPath, argv[1], strrchr(argv[1], '.') - argv[1]);
+		}
+		else
+		{
+			strcpy((*TPKToolStuff).OutputPath, argv[argc - 1]);
+		}
+
+		if (stat((*TPKToolStuff).OutputPath, &st) == -1)
+		{
+			// not cross-platform compatible, i know...
+			printf("Making directory %s\n", (*TPKToolStuff).OutputPath);
+			sprintf((*TPKToolStuff).TotalFilePath, "md %s\0", (*TPKToolStuff).OutputPath);
+			system((*TPKToolStuff).TotalFilePath);
+		}
+
+		strcpy((*TPKToolStuff).TotalFilePath, (*TPKToolStuff).OutputPath);
+		MasterChunkReader(argv[1], (*TPKToolStuff).OutputPath, TPKToolStuff, texture, GamePixelFormat, TPKAnim, &TPKLink);
+	}
+	strcpy((*TPKToolStuff).TotalFilePath, (*TPKToolStuff).OutputPath);
 	strcat((*TPKToolStuff).TotalFilePath, "\\");
 	strcat((*TPKToolStuff).TotalFilePath, (*TPKToolStuff).StatFileName);
 	printf("%s Outputting statistics to: %s\n", PRINTTYPE_INFO, (*TPKToolStuff).TotalFilePath);
 	OutputInfoToFile((*TPKToolStuff).TotalFilePath, texture, TPKToolStuff, GamePixelFormat, TPKAnim);
 
-	strcpy((*TPKToolStuff).TotalFilePath, argv[argc - 1]);
+	strcpy((*TPKToolStuff).TotalFilePath, (*TPKToolStuff).OutputPath);
 	strcat((*TPKToolStuff).TotalFilePath, "\\");
 	strcat((*TPKToolStuff).TotalFilePath, (*TPKToolStuff).SettingsFileName);
 	printf("%s Outputting settings to: %s\n", PRINTTYPE_INFO, (*TPKToolStuff).TotalFilePath);

@@ -53,7 +53,7 @@
 #define TPKTOOL_WRITINGMODE_PLAT_360 5
 
 #define TPKTOOL_HELPMESSAGE "\
-Usage: [-w/-h/-?] InFile OutFile\n\n\
+Usage: [-w/-h/-?] InFile [OutFile]\n\n\
 Default: InFile = TPK file | OutFile = Output folder path\n\
 -2     : TPK v2 mode (UG2 & MW), InFile = TPK file | OutFile = Output folder path\n\
 -PS3   : PS3 mode (TPK v3 only), InFile = TPK file | OutFile = Output folder path\n\
@@ -65,9 +65,10 @@ Default: InFile = TPK file | OutFile = Output folder path\n\
 -w360  : Writing mode (360 TPK v3), InFile = TPK settings ini file | OutFile = Output file name\n\
 -w360-2: Writing mode (360 TPK v2), InFile = TPK settings ini file | OutFile = Output file name\n\
 -h/-?  : Show this help message\n\
+[OutFile] optional, if not specified, the folder will be created with the filename's base\n\
 \nDDS files are extracted to their respective TPK hash directory.\n\
 Compressed TPKs are NOT fully supported yet.\n\
-Carbon / ProStreet / MW / UG2 / UG1 are currently only supported!\n\
+All games except World are currently supported!\n\
 While this tool can extract data for other platforms, it only fully works with PC! PS3 & 360 support WIP!"
 
 #define PRINTTYPE_ERROR "ERROR:"
@@ -284,6 +285,7 @@ struct TPKToolInternalStruct
 	char TPKPathName[TPK_PATHNAME_SIZE];
 	char StatFileName[32];
 	char SettingsFileName[32];
+	char OutputPath[1024];
 	char TotalFilePath[1124];
 	unsigned int HashArray[7];
 	unsigned int TextureCategoryHashArray[0xFFFF];
