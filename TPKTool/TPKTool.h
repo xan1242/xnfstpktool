@@ -98,6 +98,7 @@ struct TPKChild5Struct_PS3
 	unsigned char Unknown3[0x1A]; // all = 0
 };
 
+// also used on Carbon it seems...
 struct TPKChild5Struct_v2_360
 {
 	unsigned char Unknown1[8];

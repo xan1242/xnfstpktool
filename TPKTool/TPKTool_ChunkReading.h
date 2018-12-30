@@ -127,6 +127,11 @@ int OutputDDS(FILE *finput, const char* OutFilePath, unsigned int TexNumber, uns
 	DDSHeaderStruct.dwHeight = OutTexStruct[TexNumber].Child4.ResY;
 	DDSHeaderStruct.dwWidth = OutTexStruct[TexNumber].Child4.ResX;
 	DDSHeaderStruct.dwMipMapCount = OutTexStruct[TexNumber].Child4.MipmapCount;
+	if (bByteSwap)
+	{
+		// we don't support mipmaps on 360 yet :/
+		DDSHeaderStruct.dwMipMapCount = 0;
+	}
 	//DDSHeaderStruct.dwMipMapCount = 0;
 	DDSPixelFormatStruct.dwSize = 32;
 	if (OutGamePixelFormat[TexNumber].FourCC == 0x15)
@@ -968,6 +973,9 @@ int TPKChunkReader(FILE *finput, unsigned int ChunkSize, TexStruct *OutTexStruct
 				TPK_PS3_ChildType5Reader(finput, Size, OutGamePixelFormat, OutTexStruct);
 				break;
 			case TPKTOOL_READINGMODE_PLAT_V2_360:
+				TPK_v2_360_ChildType5Reader(finput, Size, OutGamePixelFormat, OutTexStruct);
+				break;
+			case TPKTOOL_READINGMODE_PLAT_360:
 				TPK_v2_360_ChildType5Reader(finput, Size, OutGamePixelFormat, OutTexStruct);
 				break;
 			default:

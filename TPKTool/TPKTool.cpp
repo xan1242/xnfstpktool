@@ -141,6 +141,10 @@ bool SettingsReader(const char* InFileName, TPKToolInternalStruct *InTPKInternal
 			fscanf(fin, "Unknown10 = %X\n", &InGamePixelFormat[(*InTPKInternal).TextureCategoryHashCount].Unknown1);
 			fscanf(fin, "Unknown11 = %X\n", &InGamePixelFormat[(*InTPKInternal).TextureCategoryHashCount].Unknown2);
 			fscanf(fin, "Unknown12 = %X\n", &InGamePixelFormat[(*InTPKInternal).TextureCategoryHashCount].Unknown3);
+			// TEMPORARY HACK
+			//InGamePixelFormat[(*InTPKInternal).TextureCategoryHashCount].Unknown1 = 1;
+			//InGamePixelFormat[(*InTPKInternal).TextureCategoryHashCount].Unknown2 = 5;
+			//InGamePixelFormat[(*InTPKInternal).TextureCategoryHashCount].Unknown3 = 6;
 		}
 		else
 		{

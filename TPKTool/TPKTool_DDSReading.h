@@ -47,6 +47,9 @@ int ReadDDSData(TexStruct *InTexture, GamePixelFormatStruct *InGamePixelFormat, 
 	InTexture[TexNumber].Child4.ResY = DDSHeaderStruct.dwHeight;
 	InTexture[TexNumber].Child4.ResX = DDSHeaderStruct.dwWidth;
 	InTexture[TexNumber].Child4.MipmapCount = DDSHeaderStruct.dwMipMapCount;
+	if (!InTexture[TexNumber].Child4.MipmapCount)
+		InTexture[TexNumber].Child4.MipmapCount = 1;
+
 	if (DDSHeaderStruct.ddspf.dwFlags >= 0x40)
 		InGamePixelFormat[TexNumber].FourCC = 0x15;
 	else
