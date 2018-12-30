@@ -2,12 +2,15 @@
 A general purpose TexturePack tool for NFS games
 
 ## Game compatibility
-Currently only supports TexturePack chunks from:
-- Need for Speed: Carbon
-- Need for Speed: ProStreet
-- Need for Speed: Undercover
+This tool should now be compatible with almost every NFS game built on EAGL/Black Box NFS.
 
-Planned support for other games.
+## Platforms
+Technically every from one perspective as it can extract data from any TPK.
+However, it produces working files from/to the following platforms so far:
+
+- PC
+- PS3
+- Xbox 360 (Giant work in progress)
 
 ## Building
 The included solution is made from VS2015, however, you should be able to build this with any Visual Studio or Dev C++.
@@ -29,5 +32,5 @@ Please note that that file contains copyrighted code by Electronic Arts and henc
 - A lot of cleanup. String operations are attrocious, beware of wolves in the code!
 - Multiple decompression types - only tested with PRECOMPVINYLS so far, seems to have worked!
 - Code refactoring and splitting
-- Make texture resizing easier
-- Add other games (other versions of the TPK chunk)
+- TPK version autodetection
+- More platforms
