@@ -762,7 +762,8 @@ void* Deswizzle(void* data, int width, int height, int numMipMaps, unsigned int 
 	}
 
 	int curAddr = 0;
-	for (int i = 0; i < numMipMaps; i++)
+
+	if (!numMipMaps)
 	{
 		int width1 = Align(width, X360AlignX);
 		int height1 = Align(height, X360AlignY);
@@ -771,16 +772,32 @@ void* Deswizzle(void* data, int width, int height, int numMipMaps, unsigned int 
 
 		void* mipMapData = malloc(size);
 		memcpy(mipMapData, (void*)((unsigned int)data + curAddr), size);
-		//Array.Copy(data, curAddr, mipMapData, 0, size);
 		mipMapData = UntileCompressedX360Texture(mipMapData, size, width1, width, height1, BlockSizeX, BlockSizeY, bytesPerBlock);
 		memcpy((void*)((unsigned int)data + curAddr), mipMapData, size);
-		//Array.Copy(mipMapData, 0, data, curAddr, size);
-
-		curAddr += size;
-		width /= 2;
-		height /= 2;
+		free(mipMapData);
 	}
+	else
+	{
+		for (int i = 0; i < numMipMaps; i++)
+		{
+			int width1 = Align(width, X360AlignX);
+			int height1 = Align(height, X360AlignY);
 
+			int size = (width1 / BlockSizeX) * (height1 / BlockSizeY) * bytesPerBlock;
+
+			void* mipMapData = malloc(size);
+			memcpy(mipMapData, (void*)((unsigned int)data + curAddr), size);
+			//Array.Copy(data, curAddr, mipMapData, 0, size);
+			mipMapData = UntileCompressedX360Texture(mipMapData, size, width1, width, height1, BlockSizeX, BlockSizeY, bytesPerBlock);
+			memcpy((void*)((unsigned int)data + curAddr), mipMapData, size);
+			//Array.Copy(mipMapData, 0, data, curAddr, size);
+			free(mipMapData);
+
+			curAddr += size;
+			width /= 2;
+			height /= 2;
+		}
+	}
 	return data;
 }
 

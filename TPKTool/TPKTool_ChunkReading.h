@@ -127,11 +127,11 @@ int OutputDDS(FILE *finput, const char* OutFilePath, unsigned int TexNumber, uns
 	DDSHeaderStruct.dwHeight = OutTexStruct[TexNumber].Child4.ResY;
 	DDSHeaderStruct.dwWidth = OutTexStruct[TexNumber].Child4.ResX;
 	DDSHeaderStruct.dwMipMapCount = OutTexStruct[TexNumber].Child4.MipmapCount;
-	if (bByteSwap)
+	/*if (bByteSwap)
 	{
 		// we don't support mipmaps on 360 yet :/
 		DDSHeaderStruct.dwMipMapCount = 0;
-	}
+	}*/
 	//DDSHeaderStruct.dwMipMapCount = 0;
 	DDSPixelFormatStruct.dwSize = 32;
 	if (OutGamePixelFormat[TexNumber].FourCC == 0x15)
@@ -172,12 +172,13 @@ int OutputDDS(FILE *finput, const char* OutFilePath, unsigned int TexNumber, uns
 
 		if (OutTexStruct[TexNumber].bSwizzled)
 		{
-			Deswizzle((*OutTPKToolInternal).DDSDataBuffer, OutTexStruct[TexNumber].Child4.ResX, OutTexStruct[TexNumber].Child4.ResY, OutTexStruct[TexNumber].Child4.MipmapCount, DDSPixelFormatStruct.dwFourCC);
-			OutTexStruct[TexNumber].Child4.DataSize = Deswizzle_RecalculateSize(OutTexStruct[TexNumber].Child4.ResX, OutTexStruct[TexNumber].Child4.ResY, DDSPixelFormatStruct.dwFourCC);
+			Deswizzle((*OutTPKToolInternal).DDSDataBuffer, OutTexStruct[TexNumber].Child4.ResX, OutTexStruct[TexNumber].Child4.ResY, OutTexStruct[TexNumber].Child4.MipmapCount - 1, DDSPixelFormatStruct.dwFourCC);
+			//OutTexStruct[TexNumber].Child4.DataSize = Deswizzle_RecalculateSize(OutTexStruct[TexNumber].Child4.ResX, OutTexStruct[TexNumber].Child4.ResY, DDSPixelFormatStruct.dwFourCC);
 		}
 	}
 	fwrite((*OutTPKToolInternal).DDSDataBuffer, sizeof(char), OutTexStruct[TexNumber].Child4.DataSize, fout);
 	free((*OutTPKToolInternal).DDSDataBuffer);
+	(*OutTPKToolInternal).DDSDataBuffer = NULL;
 
 	fclose(fout);
 	return 1;
