@@ -642,6 +642,21 @@ int ByteSwapBuffer_Short(void* buffer, unsigned int size)
 	return 0;
 }
 
+int ByteSwapBuffer_Long(void* buffer, unsigned int size)
+{
+	unsigned int CurrentPos = (unsigned int)buffer;
+	unsigned long CurrentValue;
+
+	while (CurrentPos < ((unsigned int)buffer + size))
+	{
+		CurrentValue = _byteswap_ulong(*(unsigned long*)(CurrentPos));
+		*(unsigned long*)(CurrentPos) = CurrentValue;
+		CurrentPos += sizeof(long);
+	}
+
+	return 0;
+}
+
 // 360 deswizzling stuff
 // source from: https://github.com/emoose/FtexTool (thanks!)
 // converted to C / C++ by me

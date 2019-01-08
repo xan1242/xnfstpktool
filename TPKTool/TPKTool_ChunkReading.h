@@ -139,21 +139,10 @@ int OutputDDS(FILE *finput, const char* OutFilePath, unsigned int TexNumber, uns
 		DDSPixelFormatStruct.dwFlags = 0x41;
 		DDSPixelFormatStruct.dwRGBBitCount = 0x20;
 
-		if (bByteSwap)
-		{
-			DDSPixelFormatStruct.dwRBitMask = 0xFF;
-			DDSPixelFormatStruct.dwGBitMask = 0xFF000000;
-			DDSPixelFormatStruct.dwBBitMask = 0xFF0000;
-			DDSPixelFormatStruct.dwABitMask = 0xFF00;
-		}
-		else
-		{
-			DDSPixelFormatStruct.dwRBitMask = 0xFF0000;
-			DDSPixelFormatStruct.dwGBitMask = 0xFF00;
-			DDSPixelFormatStruct.dwBBitMask = 0xFF;
-			DDSPixelFormatStruct.dwABitMask = 0xFF000000;
-		}
-
+		DDSPixelFormatStruct.dwRBitMask = 0xFF0000;
+		DDSPixelFormatStruct.dwGBitMask = 0xFF00;
+		DDSPixelFormatStruct.dwBBitMask = 0xFF;
+		DDSPixelFormatStruct.dwABitMask = 0xFF000000;
 
 		DDSHeaderStruct.dwCaps = 0x40100A;
 	}
@@ -176,7 +165,10 @@ int OutputDDS(FILE *finput, const char* OutFilePath, unsigned int TexNumber, uns
 	fwrite(&DDSHeaderStruct, sizeof(DDSHeaderStruct), 1, fout);
 	if (bByteSwap)
 	{
-		ByteSwapBuffer_Short((*OutTPKToolInternal).DDSDataBuffer, OutTexStruct[TexNumber].Child4.DataSize);
+		if (OutGamePixelFormat[TexNumber].FourCC == 0x15) // uncompressed = 32bit swap
+			ByteSwapBuffer_Long((*OutTPKToolInternal).DDSDataBuffer, OutTexStruct[TexNumber].Child4.DataSize);
+		else
+			ByteSwapBuffer_Short((*OutTPKToolInternal).DDSDataBuffer, OutTexStruct[TexNumber].Child4.DataSize);
 
 		if (OutTexStruct[TexNumber].bSwizzled)
 		{
