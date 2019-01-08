@@ -138,10 +138,23 @@ int OutputDDS(FILE *finput, const char* OutFilePath, unsigned int TexNumber, uns
 	{
 		DDSPixelFormatStruct.dwFlags = 0x41;
 		DDSPixelFormatStruct.dwRGBBitCount = 0x20;
-		DDSPixelFormatStruct.dwRBitMask = 0xFF0000;
-		DDSPixelFormatStruct.dwGBitMask = 0xFF00;
-		DDSPixelFormatStruct.dwBBitMask = 0xFF;
-		DDSPixelFormatStruct.dwABitMask = 0xFF000000;
+
+		if (bByteSwap)
+		{
+			DDSPixelFormatStruct.dwRBitMask = 0xFF;
+			DDSPixelFormatStruct.dwGBitMask = 0xFF000000;
+			DDSPixelFormatStruct.dwBBitMask = 0xFF0000;
+			DDSPixelFormatStruct.dwABitMask = 0xFF00;
+		}
+		else
+		{
+			DDSPixelFormatStruct.dwRBitMask = 0xFF0000;
+			DDSPixelFormatStruct.dwGBitMask = 0xFF00;
+			DDSPixelFormatStruct.dwBBitMask = 0xFF;
+			DDSPixelFormatStruct.dwABitMask = 0xFF000000;
+		}
+
+
 		DDSHeaderStruct.dwCaps = 0x40100A;
 	}
 	else
