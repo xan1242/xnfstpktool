@@ -177,8 +177,12 @@ int OutputDDS(FILE *finput, const char* OutFilePath, unsigned int TexNumber, uns
 	if (bByteSwap)
 	{
 		ByteSwapBuffer_Short((*OutTPKToolInternal).DDSDataBuffer, OutTexStruct[TexNumber].Child4.DataSize);
-		Deswizzle((*OutTPKToolInternal).DDSDataBuffer, OutTexStruct[TexNumber].Child4.ResX, OutTexStruct[TexNumber].Child4.ResY, OutTexStruct[TexNumber].Child4.MipmapCount, DDSPixelFormatStruct.dwFourCC);
-		OutTexStruct[TexNumber].Child4.DataSize = Deswizzle_RecalculateSize(OutTexStruct[TexNumber].Child4.ResX, OutTexStruct[TexNumber].Child4.ResY, DDSPixelFormatStruct.dwFourCC);
+
+		if (OutTexStruct[TexNumber].bSwizzled)
+		{
+			Deswizzle((*OutTPKToolInternal).DDSDataBuffer, OutTexStruct[TexNumber].Child4.ResX, OutTexStruct[TexNumber].Child4.ResY, OutTexStruct[TexNumber].Child4.MipmapCount, DDSPixelFormatStruct.dwFourCC);
+			OutTexStruct[TexNumber].Child4.DataSize = Deswizzle_RecalculateSize(OutTexStruct[TexNumber].Child4.ResX, OutTexStruct[TexNumber].Child4.ResY, DDSPixelFormatStruct.dwFourCC);
+		}
 	}
 	fwrite((*OutTPKToolInternal).DDSDataBuffer, sizeof(char), OutTexStruct[TexNumber].Child4.DataSize, fout);
 	free((*OutTPKToolInternal).DDSDataBuffer);
@@ -419,30 +423,53 @@ int TPK_v2_360_ChildType5Reader(FILE *finput, unsigned int ChunkSize, GamePixelF
 	{
 		fread(GamePixelFormatBridge, sizeof(TPKChild5Struct_v2_360), 1, finput);
 
-		switch ((*GamePixelFormatBridge).SomeVal3)
+		switch ((*GamePixelFormatBridge).SomeVal4)
 		{
-		case 0x18280186:
-			// RGBA
-			OutGamePixelFormat[TexturePixelFormatCounter].FourCC = 0x15;
+		case 0x1828:
+			// uncompressed
+
+			switch ((*GamePixelFormatBridge).SomeVal3)
+			{
+			case 0x86:
+				// ARGB
+				OutGamePixelFormat[TexturePixelFormatCounter].FourCC = 0x15;
+				break;
+			default:
+				// idk
+				OutGamePixelFormat[TexturePixelFormatCounter].FourCC = 0x15;
+				break;
+			}
+
 			break;
-		case 0x1A200152:
-			// DXT1
-			OutGamePixelFormat[TexturePixelFormatCounter].FourCC = 0x31545844;
-			break;
-		case 0x1A200153:
-			// DXT3
-			OutGamePixelFormat[TexturePixelFormatCounter].FourCC = 0x33545844;
-			break;
-		case 0x1A200154:
-			// DXT5
-			OutGamePixelFormat[TexturePixelFormatCounter].FourCC = 0x35545844;
+		case 0x1A20:
+			// compressed
+			switch ((*GamePixelFormatBridge).SomeVal3)
+			{
+			case 0x52:
+				// DXT1
+				OutGamePixelFormat[TexturePixelFormatCounter].FourCC = 0x31545844;
+				break;
+			case 0x53:
+				// DXT3
+				OutGamePixelFormat[TexturePixelFormatCounter].FourCC = 0x33545844;
+				break;
+			case 0x54:
+				// DXT5
+				OutGamePixelFormat[TexturePixelFormatCounter].FourCC = 0x35545844;
+				break;
+			default:
+				// idk
+				OutGamePixelFormat[TexturePixelFormatCounter].FourCC = 0x15;
+				break;
+			}
+
 			break;
 		default:
-			// idk
+			// treat unknowns as uncompressed
 			OutGamePixelFormat[TexturePixelFormatCounter].FourCC = 0x15;
 			break;
 		}
-
+		OutTexStruct[TexturePixelFormatCounter].bSwizzled = (*GamePixelFormatBridge).bSwizzled;
 		TexturePixelFormatCounter++;
 	}
 

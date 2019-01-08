@@ -106,7 +106,10 @@ struct TPKChild5Struct_v2_360
 	unsigned int PixelFormatVal1; // 1
 	unsigned int SomeVal1; // 6 = DXT5
 	unsigned int SomeVal2; // 1 = DXT5, ARGB, DXT3, 7 = ARGB or some other RGB?
-	unsigned int SomeVal3; // 0x1A200154 = DXT5, 0x18280186 = RGBA, 0x1A200152 = DXT1, 0x1A200153 = DXT3, maybe not 32 bits, simplified for the sake of testing
+	unsigned char SomeVal3;
+	bool bSwizzled;
+	unsigned short SomeVal4;
+	//unsigned int SomeVal3; // 0x1A200154 = DXT5, 0x18280186 = RGBA, 0x1A200152 = DXT1, 0x1A200153 = DXT3, maybe not 32 bits, simplified for the sake of testing
 	unsigned char Unknown2[8];
 };
 
@@ -272,6 +275,7 @@ struct TexStruct_TPKv2
 struct TexStruct
 {
 	TPKChild4Struct Child4;
+	bool bSwizzled;
 	char TexName[255];
 	char FilesystemPath[255];
 };
