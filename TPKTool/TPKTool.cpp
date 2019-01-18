@@ -41,7 +41,7 @@ void SortTexturesByHash(TPKToolInternalStruct *InTPKInternal, TexStruct *InTexSt
 		// first we search for the texture
 		for (j = 0; j < (*InTPKInternal).TextureCategoryHashCount; j++)
 		{
-			if (InTexStruct[j].Child4.Hash == (*InTPKInternal).TextureCategoryHashArray[i])
+			if (InTexStruct[j].Child4.NameHash == (*InTPKInternal).TextureCategoryHashArray[i])
 				break;
 		}
 		// then we use its index to sort things out (copy to the temp buffer)
@@ -77,10 +77,10 @@ bool SettingsReader(const char* InFileName, TPKToolInternalStruct *InTPKInternal
 		return 0;
 	}
 	fscanf(fin, "[TPK]\n");
-	fscanf(fin, "TypeName = %s\n", &(*InTPKInternal).TPKTypeName);
-	fscanf(fin, "TypeVal = %d\n", &(*InTPKInternal).TPKTypeValue);
-	fscanf(fin, "Path = %s\n", &(*InTPKInternal).TPKPathName);
-	fscanf(fin, "Hash = %X\n", &(*InTPKInternal).HashArray[0]);
+	fscanf(fin, "Name = %s\n", &(*InTPKInternal).TPKTypeName);
+	fscanf(fin, "Version = %d\n", &(*InTPKInternal).TPKTypeValue);
+	fscanf(fin, "Filename = %s\n", &(*InTPKInternal).TPKPathName);
+	fscanf(fin, "FilenameHash = %X\n", &(*InTPKInternal).HashArray[0]);
 	fscanf(fin, "Animations = %d\n", &(*InTPKInternal).AnimCounter);
 
 	for (unsigned int i = 0; i < (*InTPKInternal).AnimCounter; i++)
@@ -102,58 +102,73 @@ bool SettingsReader(const char* InFileName, TPKToolInternalStruct *InTPKInternal
 
 	while (!feof(fin))
 	{
-		fscanf(fin, "\n[%X]\n", &InTexStruct[(*InTPKInternal).TextureCategoryHashCount].Child4.Hash);
-		(*InTPKInternal).TextureCategoryHashArray[(*InTPKInternal).TextureCategoryHashCount] = InTexStruct[(*InTPKInternal).TextureCategoryHashCount].Child4.Hash;
-		//texture[TextureCategoryHashCount].Hash2 = 0x1A93CF;
+		fscanf(fin, "\n[%X]\n", &InTexStruct[(*InTPKInternal).TextureCategoryHashCount].Child4.NameHash);
+		(*InTPKInternal).TextureCategoryHashArray[(*InTPKInternal).TextureCategoryHashCount] = InTexStruct[(*InTPKInternal).TextureCategoryHashCount].Child4.NameHash;
+
 		fscanf(fin, "File = %s\n", &InTexStruct[(*InTPKInternal).TextureCategoryHashCount].FilesystemPath);
 		if (!(CheckIfValidDDS(InTexStruct[(*InTPKInternal).TextureCategoryHashCount].FilesystemPath)))
 		{
 			printf("%s File %s invalid, breaking here.\nMake sure all your DDS files are valid first.\n", PRINTTYPE_ERROR, InTexStruct[(*InTPKInternal).TextureCategoryHashCount].FilesystemPath);
 			return 0;
 		}
-//		ReadDDSData(InTexStruct, InGamePixelFormat, &(*InTPKInternal).RelativeDDSDataOffset, (*InTPKInternal).TextureCategoryHashCount);
+
 		fscanf(fin, "Name = %s\n", &InTexStruct[(*InTPKInternal).TextureCategoryHashCount].TexName);
-		fscanf(fin, "Hash2 = %X\n", &InTexStruct[(*InTPKInternal).TextureCategoryHashCount].Child4.Hash2);
-		//fscanf(fin, "TextureFlags = %X\n", &InTexStruct[(*InTPKInternal).TextureCategoryHashCount].Child4.TexFlags);
-		fscanf(fin, "UnkByte1 = %hhX\n", &InTexStruct[(*InTPKInternal).TextureCategoryHashCount].Child4.UnkByteVal1);
-		fscanf(fin, "UnkByte2 = %hhX\n", &InTexStruct[(*InTPKInternal).TextureCategoryHashCount].Child4.UnkByteVal2);
-		fscanf(fin, "UnkByte3 = %hhX\n", &InTexStruct[(*InTPKInternal).TextureCategoryHashCount].Child4.UnkByteVal3);
-		fscanf(fin, "Unknown1 = %X\n", &InTexStruct[(*InTPKInternal).TextureCategoryHashCount].Child4.Unknown1);
-		//fscanf(fin, "Scaler = %X\n", &texture[TextureCategoryHashCount].Child4.Scaler);
+		fscanf(fin, "ClassNameHash = %X\n", &InTexStruct[(*InTPKInternal).TextureCategoryHashCount].Child4.ClassNameHash);
+		fscanf(fin, "ShiftWidth = %hhX\n", &InTexStruct[(*InTPKInternal).TextureCategoryHashCount].Child4.ShiftWidth);
+		fscanf(fin, "ShiftHeight = %hhX\n", &InTexStruct[(*InTPKInternal).TextureCategoryHashCount].Child4.ShiftHeight);
+		fscanf(fin, "ImageCompressionType = %hhX\n", &InTexStruct[(*InTPKInternal).TextureCategoryHashCount].Child4.ImageCompressionType);
+		fscanf(fin, "PaletteCompressionType = %hhX\n", &InTexStruct[(*InTPKInternal).TextureCategoryHashCount].Child4.PaletteCompressionType);
+		fscanf(fin, "NumPaletteEntries = %hX\n", &InTexStruct[(*InTPKInternal).TextureCategoryHashCount].Child4.NumPaletteEntries);
+		fscanf(fin, "TilableUV = %hhX\n", &InTexStruct[(*InTPKInternal).TextureCategoryHashCount].Child4.TilableUV);
+		fscanf(fin, "BiasLevel = %hhX\n", &InTexStruct[(*InTPKInternal).TextureCategoryHashCount].Child4.BiasLevel);
+		fscanf(fin, "RenderingOrder = %hhX\n", &InTexStruct[(*InTPKInternal).TextureCategoryHashCount].Child4.RenderingOrder);
+		fscanf(fin, "ScrollType = %hhX\n", &InTexStruct[(*InTPKInternal).TextureCategoryHashCount].Child4.ScrollType);
+		fscanf(fin, "UsedFlag = %hhX\n", &InTexStruct[(*InTPKInternal).TextureCategoryHashCount].Child4.UsedFlag);
+		fscanf(fin, "ApplyAlphaSorting = %hhX\n", &InTexStruct[(*InTPKInternal).TextureCategoryHashCount].Child4.ApplyAlphaSorting);
+		fscanf(fin, "AlphaUsageType = %hhX\n", &InTexStruct[(*InTPKInternal).TextureCategoryHashCount].Child4.AlphaUsageType);
+		fscanf(fin, "AlphaBlendType = %hhX\n", &InTexStruct[(*InTPKInternal).TextureCategoryHashCount].Child4.AlphaBlendType);
+		fscanf(fin, "Flags = %hhX\n", &InTexStruct[(*InTPKInternal).TextureCategoryHashCount].Child4.Flags);
+		fscanf(fin, "MipmapBiasType = %hhX\n", &InTexStruct[(*InTPKInternal).TextureCategoryHashCount].Child4.MipmapBiasType);
+		fscanf(fin, "ScrollTimeStep = %hX\n", &InTexStruct[(*InTPKInternal).TextureCategoryHashCount].Child4.ScrollTimeStep);
+		fscanf(fin, "ScrollSpeedS = %hX\n", &InTexStruct[(*InTPKInternal).TextureCategoryHashCount].Child4.ScrollSpeedS);
+		fscanf(fin, "ScrollSpeedT = %hX\n", &InTexStruct[(*InTPKInternal).TextureCategoryHashCount].Child4.ScrollSpeedT);
+		fscanf(fin, "OffsetS = %hX\n", &InTexStruct[(*InTPKInternal).TextureCategoryHashCount].Child4.OffsetS);
+		fscanf(fin, "OffsetT = %hX\n", &InTexStruct[(*InTPKInternal).TextureCategoryHashCount].Child4.OffsetT);
+		fscanf(fin, "ScaleS = %hX\n", &InTexStruct[(*InTPKInternal).TextureCategoryHashCount].Child4.ScaleS);
+		fscanf(fin, "ScaleT = %hX\n", &InTexStruct[(*InTPKInternal).TextureCategoryHashCount].Child4.ScaleT);
+		fscanf(fin, "Unknown1 = %hhX\n", &InTexStruct[(*InTPKInternal).TextureCategoryHashCount].Child4.Padding);
 
-//		if (InGamePixelFormat[(*InTPKInternal).TextureCategoryHashCount].FourCC == 0x15)
-//			InTexStruct[(*InTPKInternal).TextureCategoryHashCount].Child4.Scaler = ((InTexStruct[(*InTPKInternal).TextureCategoryHashCount].Child4.ResX) * (InTexStruct[(*InTPKInternal).TextureCategoryHashCount].Child4.ResY)) * TEXTURENUMCHANNELS;
-//		else
-//			InTexStruct[(*InTPKInternal).TextureCategoryHashCount].Child4.Scaler = flp2(InTexStruct[(*InTPKInternal).TextureCategoryHashCount].Child4.DataSize);
-
-		fscanf(fin, "Unknown3 = %hX\n", &InTexStruct[(*InTPKInternal).TextureCategoryHashCount].Child4.Unknown3);
-		fscanf(fin, "Unknown4 = %X\n", &InTexStruct[(*InTPKInternal).TextureCategoryHashCount].Child4.Unknown4);
-		fscanf(fin, "Unknown5 = %X\n", &InTexStruct[(*InTPKInternal).TextureCategoryHashCount].Child4.Unknown5);
-		fscanf(fin, "Unknown6 = %X\n", &InTexStruct[(*InTPKInternal).TextureCategoryHashCount].Child4.Unknown6);
-		fscanf(fin, "Unknown7 = %X\n", &InTexStruct[(*InTPKInternal).TextureCategoryHashCount].Child4.Unknown7);
-		fscanf(fin, "Unknown8 = %X\n", &InTexStruct[(*InTPKInternal).TextureCategoryHashCount].Child4.Unknown8);
-		fscanf(fin, "Unknown9 = %X\n", &InTexStruct[(*InTPKInternal).TextureCategoryHashCount].Child4.Unknown9);
-		
-
-		// REPURPOSING CHILD4's VALUES! IF CARBON IS USED, THESE ARE ZEROED OUT! HACK!
 		if (WritingMode == TPKTOOL_WRITINGMODE_V2)
 		{
-			fscanf(fin, "Unknown10 = %X\n", &InGamePixelFormat[(*InTPKInternal).TextureCategoryHashCount].Unknown1);
-			fscanf(fin, "Unknown11 = %X\n", &InGamePixelFormat[(*InTPKInternal).TextureCategoryHashCount].Unknown2);
-			fscanf(fin, "Unknown12 = %X\n", &InGamePixelFormat[(*InTPKInternal).TextureCategoryHashCount].Unknown3);
-			// TEMPORARY HACK
-			//InGamePixelFormat[(*InTPKInternal).TextureCategoryHashCount].Unknown1 = 1;
-			//InGamePixelFormat[(*InTPKInternal).TextureCategoryHashCount].Unknown2 = 5;
-			//InGamePixelFormat[(*InTPKInternal).TextureCategoryHashCount].Unknown3 = 6;
+			fscanf(fin, "PixelFormatUnk1 = %X\n", &InGamePixelFormat[(*InTPKInternal).TextureCategoryHashCount].Unknown1);
+			fscanf(fin, "PixelFormatUnk2 = %X\n", &InGamePixelFormat[(*InTPKInternal).TextureCategoryHashCount].Unknown2);
+			fscanf(fin, "PixelFormatUnk3 = %X\n", &InGamePixelFormat[(*InTPKInternal).TextureCategoryHashCount].Unknown3);
 		}
 		else
 		{
-			fscanf(fin, "Unknown10 = %X\n", &InTexStruct[(*InTPKInternal).TextureCategoryHashCount].Child4.Unknown10);
-			fscanf(fin, "Unknown11 = %X\n", &InTexStruct[(*InTPKInternal).TextureCategoryHashCount].Child4.Unknown11);
-			fscanf(fin, "Unknown12 = %X\n", &InTexStruct[(*InTPKInternal).TextureCategoryHashCount].Child4.Unknown12);
+			fscanf(fin, "PixelFormatUnk1 = %X\n", &ReadNumber);
+			fscanf(fin, "PixelFormatUnk2 = %X\n", &ReadNumber);
+			fscanf(fin, "PixelFormatUnk3 = %X\n", &ReadNumber);
 		}
-		fscanf(fin, "Unknown17 = %hhX\n", &InTexStruct[(*InTPKInternal).TextureCategoryHashCount].Child4.Unknown17);
-		fscanf(fin, "Unknown18 = %hhX\n", &InTexStruct[(*InTPKInternal).TextureCategoryHashCount].Child4.Unknown18);
+		// REPURPOSING CHILD4's VALUES! IF CARBON IS USED, THESE ARE ZEROED OUT! HACK!
+		//if (WritingMode == TPKTOOL_WRITINGMODE_V2)
+		//{
+		//	fscanf(fin, "Unknown10 = %X\n", &InGamePixelFormat[(*InTPKInternal).TextureCategoryHashCount].Unknown1);
+		//	fscanf(fin, "Unknown11 = %X\n", &InGamePixelFormat[(*InTPKInternal).TextureCategoryHashCount].Unknown2);
+		//	fscanf(fin, "Unknown12 = %X\n", &InGamePixelFormat[(*InTPKInternal).TextureCategoryHashCount].Unknown3);
+		//	// TEMPORARY HACK
+		//	//InGamePixelFormat[(*InTPKInternal).TextureCategoryHashCount].Unknown1 = 1;
+		//	//InGamePixelFormat[(*InTPKInternal).TextureCategoryHashCount].Unknown2 = 5;
+		//	//InGamePixelFormat[(*InTPKInternal).TextureCategoryHashCount].Unknown3 = 6;
+		//}
+		//else
+		//{
+		//	fscanf(fin, "Unknown10 = %X\n", &InTexStruct[(*InTPKInternal).TextureCategoryHashCount].Child4.Unknown10);
+		//	fscanf(fin, "Unknown11 = %X\n", &InTexStruct[(*InTPKInternal).TextureCategoryHashCount].Child4.Unknown11);
+		//	fscanf(fin, "Unknown12 = %X\n", &InTexStruct[(*InTPKInternal).TextureCategoryHashCount].Child4.Unknown12);
+		//}
+		//fscanf(fin, "Unknown17 = %hhX\n", &InTexStruct[(*InTPKInternal).TextureCategoryHashCount].Child4.Unknown17);
+		//fscanf(fin, "Unknown18 = %hhX\n", &InTexStruct[(*InTPKInternal).TextureCategoryHashCount].Child4.Unknown18);
 
 		(*InTPKInternal).TextureCategoryHashCount++;
 	}
@@ -165,9 +180,9 @@ bool SettingsReader(const char* InFileName, TPKToolInternalStruct *InTPKInternal
 		ReadDDSData(InTexStruct, InGamePixelFormat, &(*InTPKInternal).RelativeDDSDataOffset, i);
 
 		if (InGamePixelFormat[i].FourCC == 0x15)
-			InTexStruct[i].Child4.Scaler = ((InTexStruct[i].Child4.ResX) * (InTexStruct[i].Child4.ResY)) * TEXTURENUMCHANNELS;
+			InTexStruct[i].Child4.BaseImageSize = ((InTexStruct[i].Child4.Width) * (InTexStruct[i].Child4.Height)) * TEXTURENUMCHANNELS;
 		else
-			InTexStruct[i].Child4.Scaler = flp2(InTexStruct[i].Child4.DataSize);
+			InTexStruct[i].Child4.BaseImageSize = flp2(InTexStruct[i].Child4.ImageSize);
 	}
 
 	(*InTPKInternal).TextureDataCount = (*InTPKInternal).TextureCategoryHashCount; // THIS IS NOT TRUE FOR VINYLS!!!
@@ -332,17 +347,18 @@ int main(int argc, char *argv[])
 		strcpy((*TPKToolStuff).TotalFilePath, (*TPKToolStuff).OutputPath);
 		MasterChunkReader(argv[1], (*TPKToolStuff).OutputPath, TPKToolStuff, texture, GamePixelFormat, TPKAnim, &TPKLink);
 	}
-	strcpy((*TPKToolStuff).TotalFilePath, (*TPKToolStuff).OutputPath);
-	strcat((*TPKToolStuff).TotalFilePath, "\\");
-	strcat((*TPKToolStuff).TotalFilePath, (*TPKToolStuff).StatFileName);
-	printf("%s Outputting statistics to: %s\n", PRINTTYPE_INFO, (*TPKToolStuff).TotalFilePath);
-	OutputInfoToFile((*TPKToolStuff).TotalFilePath, texture, TPKToolStuff, GamePixelFormat, TPKAnim);
+	// phasing out stat file in favor of more detailed ini
+	//strcpy((*TPKToolStuff).TotalFilePath, (*TPKToolStuff).OutputPath);
+	//strcat((*TPKToolStuff).TotalFilePath, "\\");
+	//strcat((*TPKToolStuff).TotalFilePath, (*TPKToolStuff).StatFileName);
+	//printf("%s Outputting statistics to: %s\n", PRINTTYPE_INFO, (*TPKToolStuff).TotalFilePath);
+	//OutputInfoToFile((*TPKToolStuff).TotalFilePath, texture, TPKToolStuff, GamePixelFormat, TPKAnim);
 
 	strcpy((*TPKToolStuff).TotalFilePath, (*TPKToolStuff).OutputPath);
 	strcat((*TPKToolStuff).TotalFilePath, "\\");
 	strcat((*TPKToolStuff).TotalFilePath, (*TPKToolStuff).SettingsFileName);
 	printf("%s Outputting settings to: %s\n", PRINTTYPE_INFO, (*TPKToolStuff).TotalFilePath);
-	SpitSettingsFile((*TPKToolStuff).TotalFilePath, texture, TPKToolStuff, TPKAnim);
+	SpitSettingsFile((*TPKToolStuff).TotalFilePath, texture, TPKToolStuff, TPKAnim, GamePixelFormat);
 
 	free(TPKToolStuff);
 

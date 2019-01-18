@@ -44,20 +44,41 @@ int ReadDDSData(TexStruct *InTexture, GamePixelFormatStruct *InGamePixelFormat, 
 	fseek(fin, 4, SEEK_SET);
 	DDSHeaderStruct.ddspf = DDSPixelFormatStruct;
 	fread(&DDSHeaderStruct, sizeof(DirectX::DDS_HEADER), 1, fin);
-	InTexture[TexNumber].Child4.ResY = DDSHeaderStruct.dwHeight;
-	InTexture[TexNumber].Child4.ResX = DDSHeaderStruct.dwWidth;
-	InTexture[TexNumber].Child4.MipmapCount = DDSHeaderStruct.dwMipMapCount;
-	if (!InTexture[TexNumber].Child4.MipmapCount)
-		InTexture[TexNumber].Child4.MipmapCount = 1;
+	InTexture[TexNumber].Child4.Height = DDSHeaderStruct.dwHeight;
+	InTexture[TexNumber].Child4.Width = DDSHeaderStruct.dwWidth;
+	InTexture[TexNumber].Child4.NumMipMapLevels = DDSHeaderStruct.dwMipMapCount;
+	if (!InTexture[TexNumber].Child4.NumMipMapLevels)
+		InTexture[TexNumber].Child4.NumMipMapLevels = 1;
 
 	if (DDSHeaderStruct.ddspf.dwFlags >= 0x40)
+	{
+		// TODO: P8 support
 		InGamePixelFormat[TexNumber].FourCC = 0x15;
+		InTexture[TexNumber].Child4.ImageCompressionType = TPK_COMPRESSION_TYPE_RGBA;
+	}
 	else
+	{
 		InGamePixelFormat[TexNumber].FourCC = DDSHeaderStruct.ddspf.dwFourCC;
+		switch (InGamePixelFormat[TexNumber].FourCC)
+		{
+		case 0x31545844:
+			InTexture[TexNumber].Child4.ImageCompressionType = TPK_COMPRESSION_TYPE_DXT1;
+			break;
+		case 0x33545844:
+			InTexture[TexNumber].Child4.ImageCompressionType = TPK_COMPRESSION_TYPE_DXT3;
+			break;
+		case 0x35545844:
+			InTexture[TexNumber].Child4.ImageCompressionType = TPK_COMPRESSION_TYPE_DXT5;
+			break;
+		default:
+			InTexture[TexNumber].Child4.ImageCompressionType = TPK_COMPRESSION_TYPE_RGBA;
+			break;
+		}
+	}
 	fseek(fin, 0L, SEEK_END);
-	InTexture[TexNumber].Child4.DataSize = ftell(fin) - 0x80;
-	InTexture[TexNumber].Child4.DataOffset = *InRelativeDDSDataOffset;
-	*InRelativeDDSDataOffset += InTexture[TexNumber].Child4.DataSize;
+	InTexture[TexNumber].Child4.ImageSize = ftell(fin) - 0x80;
+	InTexture[TexNumber].Child4.ImagePlacement = *InRelativeDDSDataOffset;
+	*InRelativeDDSDataOffset += InTexture[TexNumber].Child4.ImageSize;
 	fclose(fin);
 	return 1;
 }

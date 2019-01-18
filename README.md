@@ -24,7 +24,7 @@ It is currently very limited.
 
 In order to enable decompression support, you must provide DecompressionCode.h file, which can be found here: http://www.mediafire.com/file/rmx88y9az2vsbx3/DecompressionCode.h
 
-Place that file in the TPKTool folder and uncomment the line that contains `#define TPKTOOL_DECOMPRESSION` in TPKTool.h
+Place that file in the TPKTool folder and uncomment the line that contains `#define TPKTOOL_DECOMPRESSION` in TPKTool_ChunkReading.h
 
 Please note that that file contains copyrighted code by Electronic Arts and hence is not distributed within this repository.
 

@@ -21,9 +21,9 @@ int ZeroChunkWriter(FILE *fout, unsigned int ChunkSize)
 int TPKChildType1Writer(FILE *fout, unsigned int ChunkSize, TPKToolInternalStruct *InTPKToolInternal)
 {
 	printf("%s Writing TPK child 1 chunk: %X bytes\n", PRINTTYPE_INFO, ChunkSize);
-	//unsigned int somethingidunno = 0x8;
+	
 	WriteChunkTypeAndSize(fout, TPK_CHILD1_CHUNKID, ChunkSize);
-	//fwrite(&somethingidunno, 4, 1, fout);
+	
 	fwrite(&(*InTPKToolInternal).TPKTypeValue, sizeof(int), 1, fout);
 	fwrite(&(*InTPKToolInternal).TPKTypeName, sizeof(char), 0x1C, fout);
 	fwrite(&(*InTPKToolInternal).TPKPathName, sizeof(char), 0x40, fout);
@@ -38,7 +38,7 @@ int TPKChildType2Writer(FILE *fout, unsigned int ChunkSize, TPKToolInternalStruc
 	WriteChunkTypeAndSize(fout, TPK_CHILD2_CHUNKID, ChunkSize);
 	for (unsigned int i = 0; i <= (*InTPKToolInternal).TextureCategoryHashCount - 1; i++)
 	{
-		fwrite(&InTexStruct[i].Child4.Hash, sizeof(int), 1, fout);
+		fwrite(&InTexStruct[i].Child4.NameHash, sizeof(int), 1, fout);
 		fwrite(&TempZero, 4, 1, fout);
 	}
 	return 1;
@@ -51,43 +51,14 @@ int TPKChildType4Writer(FILE *fout, unsigned int ChunkSize, TPKToolInternalStruc
 	WriteChunkTypeAndSize(fout, TPK_CHILD4_CHUNKID, ChunkSize);
 	for (unsigned int i = 0; i < (*InTPKToolInternal).TextureCategoryHashCount; i++)
 	{
-		InTexStruct[i].Child4.Unknown13[0] = 0;
-		InTexStruct[i].Child4.Unknown13[1] = 0;
-		InTexStruct[i].Child4.Unknown13[2] = 0;
-		InTexStruct[i].Child4.Unknown14 = 0xFFFFFFFF;
-		fwrite(&InTexStruct[i].Child4, sizeof(TPKChild4Struct), 1, fout);
+		InTexStruct[i].Child4.Unknown = 0;
+		InTexStruct[i].Child4.Padding_990[0] = 0;
+		InTexStruct[i].Child4.Padding_990[1] = 0;
+		InTexStruct[i].Child4.PalettePlacement = 0xFFFFFFFF;
+		fwrite(&InTexStruct[i].Child4, sizeof(TextureInfo), 1, fout);
 		TexNameSize = strlen(InTexStruct[i].TexName) + 1;
 		fwrite(&TexNameSize, sizeof(char), 1, fout);
 
-	/*	TexNameSize = strlen(InTexStruct[i].TexName) + 1;
-		for (unsigned int j = 0; j <= 0xB; j++)
-			fputc(0, fout);
-		fwrite(&InTexStruct[i].Child4.Hash, sizeof(int), 1, fout);
-		fwrite(&InTexStruct[i].Child4.Hash2, sizeof(int), 1, fout);
-		fwrite(&InTexStruct[i].Child4.DataOffset, sizeof(int), 1, fout);
-		for (unsigned int j = 0; j <= 0x3; j++)
-			fputc(0xFF, fout);
-		fwrite(&InTexStruct[i].Child4.DataSize, 4, 1, fout);
-		fwrite(&InTexStruct[i].Child4.Unknown1, 4, 1, fout);
-		fwrite(&InTexStruct[i].Child4.Scaler, 4, 1, fout);
-		fwrite(&InTexStruct[i].Child4.ResX, 2, 1, fout);
-		fwrite(&InTexStruct[i].Child4.ResY, 2, 1, fout);
-		fwrite(&InTexStruct[i].Child4.MipmapCount, 1, 1, fout);
-		fwrite(&InTexStruct[i].Child4.MipmapCount, 1, 1, fout);
-		fwrite(&InTexStruct[i].Child4.Unknown3, 2, 1, fout);
-		fwrite(&InTexStruct[i].Child4.TexFlags, 4, 1, fout);
-
-		fwrite(&InTexStruct[i].Child4.Unknown4, 4, 1, fout);
-		fwrite(&InTexStruct[i].Child4.Unknown5, 4, 1, fout);
-		fwrite(&InTexStruct[i].Child4.Unknown6, 4, 1, fout);
-		fwrite(&InTexStruct[i].Child4.Unknown7, 4, 1, fout);
-		fwrite(&InTexStruct[i].Child4.Unknown8, 4, 1, fout);
-		fwrite(&InTexStruct[i].Child4.Unknown9, 4, 1, fout);
-		fwrite(&InTexStruct[i].Child4.Unknown10, 4, 1, fout);
-		fwrite(&InTexStruct[i].Child4.Unknown11, 4, 1, fout);
-		fwrite(&InTexStruct[i].Child4.Unknown12, 4, 1, fout);
-
-		fwrite(&TexNameSize, sizeof(char), 1, fout);*/
 		fwrite(&InTexStruct[i].TexName, sizeof(char), TexNameSize, fout);
 	}
 	return 1;
@@ -98,39 +69,48 @@ int TPK_v2_ChildType4Writer(FILE *fout, unsigned int ChunkSize, TPKToolInternalS
 	// UG2 & MW
 	printf("%s Writing TPK child 4 chunk: %X bytes\n", PRINTTYPE_INFO, ChunkSize);
 	unsigned char TexNameSize = 0;
-	TPKChild4Struct_TPKv2 *TPKv2Child4_Bridge = (TPKChild4Struct_TPKv2*)calloc(1, sizeof(TPKChild4Struct_TPKv2));
+	//TPKChild4Struct_TPKv2 *TPKv2Child4_Bridge = (TPKChild4Struct_TPKv2*)calloc(1, sizeof(TPKChild4Struct_TPKv2));
+	OldTextureInfo *TPKv2Child4_Bridge = (OldTextureInfo*)calloc(1, sizeof(OldTextureInfo));
 
 	WriteChunkTypeAndSize(fout, TPK_CHILD4_CHUNKID, ChunkSize);
 	for (unsigned int i = 0; i < (*InTPKToolInternal).TextureCategoryHashCount; i++)
 	{
-		strncpy((*TPKv2Child4_Bridge).TexName, InTexStruct[i].TexName, 0x18);
-		(*TPKv2Child4_Bridge).Hash = InTexStruct[i].Child4.Hash;
-		(*TPKv2Child4_Bridge).Hash2 = InTexStruct[i].Child4.Hash2;
-		(*TPKv2Child4_Bridge).DataOffset = InTexStruct[i].Child4.DataOffset;
-		(*TPKv2Child4_Bridge).Unknown14 = InTexStruct[i].Child4.Unknown14;
-		(*TPKv2Child4_Bridge).DataSize = InTexStruct[i].Child4.DataSize;
-		(*TPKv2Child4_Bridge).Unknown1 = InTexStruct[i].Child4.Unknown1;
-		(*TPKv2Child4_Bridge).Scaler = InTexStruct[i].Child4.Scaler;
-		(*TPKv2Child4_Bridge).ResX = InTexStruct[i].Child4.ResX;
-		(*TPKv2Child4_Bridge).ResY = InTexStruct[i].Child4.ResY;
-		(*TPKv2Child4_Bridge).MipmapCount = InTexStruct[i].Child4.MipmapCount;
-	//	(*TPKv2Child4_Bridge).MipmapCount2 = InTexStruct[i].Child4.MipmapCount;
-		(*TPKv2Child4_Bridge).Unknown3 = InTexStruct[i].Child4.Unknown3;
-		(*TPKv2Child4_Bridge).UnkByteVal1 = InTexStruct[i].Child4.UnkByteVal1;
-		(*TPKv2Child4_Bridge).UnkByteVal2 = InTexStruct[i].Child4.UnkByteVal2;
-		(*TPKv2Child4_Bridge).UnkByteVal3 = InTexStruct[i].Child4.UnkByteVal3;
-		(*TPKv2Child4_Bridge).Unknown17 = InTexStruct[i].Child4.Unknown17;
-		(*TPKv2Child4_Bridge).Unknown18 = InTexStruct[i].Child4.Unknown18;
+		strncpy((*TPKv2Child4_Bridge).DebugName, InTexStruct[i].TexName, 0x18);
+		(*TPKv2Child4_Bridge).NameHash = InTexStruct[i].Child4.NameHash;
+		(*TPKv2Child4_Bridge).ClassNameHash = InTexStruct[i].Child4.ClassNameHash;
+		(*TPKv2Child4_Bridge).ImagePlacement = InTexStruct[i].Child4.ImagePlacement;
+		(*TPKv2Child4_Bridge).PalettePlacement = InTexStruct[i].Child4.PalettePlacement;
+		(*TPKv2Child4_Bridge).ImageSize = InTexStruct[i].Child4.ImageSize;
+		(*TPKv2Child4_Bridge).PaletteSize = InTexStruct[i].Child4.PaletteSize;
+		(*TPKv2Child4_Bridge).BaseImageSize = InTexStruct[i].Child4.BaseImageSize;
+		(*TPKv2Child4_Bridge).Width = InTexStruct[i].Child4.Width;
+		(*TPKv2Child4_Bridge).Height = InTexStruct[i].Child4.Height;
+		(*TPKv2Child4_Bridge).ShiftWidth = InTexStruct[i].Child4.ShiftWidth;
+		(*TPKv2Child4_Bridge).ShiftHeight = InTexStruct[i].Child4.ShiftHeight;
+		(*TPKv2Child4_Bridge).ImageCompressionType = InTexStruct[i].Child4.ImageCompressionType;
+		(*TPKv2Child4_Bridge).PaletteCompressionType = InTexStruct[i].Child4.PaletteCompressionType;
+		(*TPKv2Child4_Bridge).NumPaletteEntries = InTexStruct[i].Child4.NumPaletteEntries;
+		(*TPKv2Child4_Bridge).NumMipMapLevels = InTexStruct[i].Child4.NumMipMapLevels;
+		(*TPKv2Child4_Bridge).TilableUV = InTexStruct[i].Child4.TilableUV;
+		(*TPKv2Child4_Bridge).BiasLevel = InTexStruct[i].Child4.BiasLevel;
+		(*TPKv2Child4_Bridge).RenderingOrder = InTexStruct[i].Child4.RenderingOrder;
+		(*TPKv2Child4_Bridge).ScrollType = InTexStruct[i].Child4.ScrollType;
+		(*TPKv2Child4_Bridge).UsedFlag = InTexStruct[i].Child4.UsedFlag;
+		(*TPKv2Child4_Bridge).ApplyAlphaSorting = InTexStruct[i].Child4.ApplyAlphaSorting;
+		(*TPKv2Child4_Bridge).AlphaUsageType = InTexStruct[i].Child4.AlphaUsageType;
+		(*TPKv2Child4_Bridge).AlphaBlendType = InTexStruct[i].Child4.AlphaBlendType;
+		(*TPKv2Child4_Bridge).Flags = InTexStruct[i].Child4.Flags;
+		(*TPKv2Child4_Bridge).MipmapBiasType = InTexStruct[i].Child4.MipmapBiasType;
+		(*TPKv2Child4_Bridge).Unknown3 = InTexStruct[i].Child4.Padding;
+		(*TPKv2Child4_Bridge).ScrollTimeStep = InTexStruct[i].Child4.ScrollTimeStep;
+		(*TPKv2Child4_Bridge).ScrollSpeedS = InTexStruct[i].Child4.ScrollSpeedS;
+		(*TPKv2Child4_Bridge).ScrollSpeedT = InTexStruct[i].Child4.ScrollSpeedT;
+		(*TPKv2Child4_Bridge).OffsetS = InTexStruct[i].Child4.OffsetS;
+		(*TPKv2Child4_Bridge).OffsetT = InTexStruct[i].Child4.OffsetT;
+		(*TPKv2Child4_Bridge).ScaleS = InTexStruct[i].Child4.ScaleS;
+		(*TPKv2Child4_Bridge).ScaleT = InTexStruct[i].Child4.ScaleT;
 
-		//(*TPKv2Child4_Bridge).TexFlags = InTexStruct[i].Child4.TexFlags;
-		(*TPKv2Child4_Bridge).Unknown4 = InTexStruct[i].Child4.Unknown4;
-		(*TPKv2Child4_Bridge).Unknown5 = InTexStruct[i].Child4.Unknown5;
-		(*TPKv2Child4_Bridge).Unknown6 = InTexStruct[i].Child4.Unknown6;
-		(*TPKv2Child4_Bridge).Unknown7 = InTexStruct[i].Child4.Unknown7;
-		(*TPKv2Child4_Bridge).Unknown8 = InTexStruct[i].Child4.Unknown8;
-		(*TPKv2Child4_Bridge).Unknown9 = InTexStruct[i].Child4.Unknown9;
-
-		fwrite(TPKv2Child4_Bridge, sizeof(TPKChild4Struct_TPKv2), 1, fout);
+		fwrite(TPKv2Child4_Bridge, sizeof(OldTextureInfo), 1, fout);
 	}
 	free(TPKv2Child4_Bridge);
 	return 1;
@@ -164,24 +144,28 @@ int TPK_v2_360_ChildType5Writer(FILE *fout, unsigned int ChunkSize, TPKToolInter
 	WriteChunkTypeAndSize(fout, TPK_CHILD5_CHUNKID, ChunkSize);
 	for (unsigned int i = 0; i < (*InTPKToolInternal).TextureCategoryHashCount; i++)
 	{
-
-
+		(*GamePixelFormatBridge).bSwizzled = false;
 		switch (InGamePixelFormat[i].FourCC)
 		{
 		case 0x15:
-			(*GamePixelFormatBridge).SomeVal3 = 0x18280186; // NOT ALWAYS TRUE
+			(*GamePixelFormatBridge).SomeVal3 = 0x86;
+			(*GamePixelFormatBridge).SomeVal4 = 0x1828;
 			break;
 		case 0x31545844:
-			(*GamePixelFormatBridge).SomeVal3 = 0x1A200152;
+			(*GamePixelFormatBridge).SomeVal3 = 0x52;
+			(*GamePixelFormatBridge).SomeVal4 = 0x1A20;
 			break;
 		case 0x33545844:
-			(*GamePixelFormatBridge).SomeVal3 = 0x1A200153;
+			(*GamePixelFormatBridge).SomeVal3 = 0x53;
+			(*GamePixelFormatBridge).SomeVal4 = 0x1A20;
 			break;
 		case 0x35545844:
-			(*GamePixelFormatBridge).SomeVal3 = 0x1A200154;
+			(*GamePixelFormatBridge).SomeVal3 = 0x54;
+			(*GamePixelFormatBridge).SomeVal4 = 0x1A20;
 			break;
 		default:
-			(*GamePixelFormatBridge).SomeVal3 = 0x18280186;
+			(*GamePixelFormatBridge).SomeVal3 = 0x86;
+			(*GamePixelFormatBridge).SomeVal4 = 0x1828;
 			break;
 		}
 
@@ -205,8 +189,6 @@ int TPK_PS3_ChildType5Writer(FILE *fout, unsigned int ChunkSize, TPKToolInternal
 	WriteChunkTypeAndSize(fout, TPK_CHILD5_CHUNKID, ChunkSize);
 	for (unsigned int i = 0; i < (*InTPKToolInternal).TextureCategoryHashCount; i++)
 	{
-
-
 		switch (InGamePixelFormat[i].FourCC)
 		{
 		case 0x31545844:
@@ -232,12 +214,6 @@ int TPK_PS3_ChildType5Writer(FILE *fout, unsigned int ChunkSize, TPKToolInternal
 		}
 
 		fwrite(GamePixelFormatBridge, sizeof(TPKChild5Struct_PS3), 1, fout);
-
-		/*for (unsigned int j = 0; j <= 0xB; j++)
-		fputc(0, fout);
-		fwrite(&InGamePixelFormat[i].FourCC, 4, 1, fout);
-		fwrite(&InGamePixelFormat[i].Unknown1, 4, 1, fout);
-		fwrite(&InGamePixelFormat[i].Unknown2, 4, 1, fout);*/
 	}
 
 	free(GamePixelFormatBridge);
