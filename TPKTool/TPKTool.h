@@ -899,7 +899,7 @@ void* UntileCompressedX360Texture(void* data, unsigned int datasize, int tiledWi
 }
 
 
-void* Deswizzle(void* data, int size, int width, int height, int numMipMaps, unsigned int FourCC)
+unsigned int Deswizzle(void* data, int size, int width, int height, int numMipMaps, unsigned int FourCC)
 {
 	bool found = false;
 	void* UntiledData = NULL;
@@ -963,10 +963,10 @@ void* Deswizzle(void* data, int size, int width, int height, int numMipMaps, uns
 		width /= 2;
 		height /= 2;
 	}
-	return data;
+	return curAddr;
 }
 #else
-void* Deswizzle(void* data, int size, int width, int height, int numMipMaps, unsigned int FourCC)
+unsigned int Deswizzle(void* data, int size, int width, int height, int numMipMaps, unsigned int FourCC)
 {
 	DWORD PixelFormat = 0;
 
@@ -1036,7 +1036,7 @@ void* Deswizzle(void* data, int size, int width, int height, int numMipMaps, uns
 		InputHeight /= 2;
 	}
 
-	return data;
+	return curAddr;
 }
 
 #endif

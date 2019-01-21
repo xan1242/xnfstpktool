@@ -5,7 +5,7 @@
 
 // uncomment this to enable decompression code, requires DecompressionCode.h which contains propriatery game code
 // place DecompressionCode.h in the project folder (also named TPKTool)
-//#define TPKTOOL_DECOMPRESSION
+#define TPKTOOL_DECOMPRESSION
 
 #ifdef TPKTOOL_DECOMPRESSION
 #include "includes\injector\injector.hpp"
@@ -173,7 +173,7 @@ int OutputDDS(FILE *finput, const char* OutFilePath, unsigned int TexNumber, uns
 		if (OutTexStruct[TexNumber].bSwizzled)
 		{
 			//OutTexStruct[TexNumber].Child4.MipmapCount--;
-			Deswizzle((*OutTPKToolInternal).DDSDataBuffer, OutTexStruct[TexNumber].Child4.ImageSize, OutTexStruct[TexNumber].Child4.Width, OutTexStruct[TexNumber].Child4.Height, OutTexStruct[TexNumber].Child4.NumMipMapLevels, DDSPixelFormatStruct.dwFourCC);
+			OutTexStruct[TexNumber].Child4.ImageSize = Deswizzle((*OutTPKToolInternal).DDSDataBuffer, OutTexStruct[TexNumber].Child4.ImageSize, OutTexStruct[TexNumber].Child4.Width, OutTexStruct[TexNumber].Child4.Height, OutTexStruct[TexNumber].Child4.NumMipMapLevels, DDSPixelFormatStruct.dwFourCC);
 			//OutTexStruct[TexNumber].Child4.DataSize = Deswizzle_RecalculateSize(OutTexStruct[TexNumber].Child4.ResX, OutTexStruct[TexNumber].Child4.ResY, DDSPixelFormatStruct.dwFourCC);
 		}
 	}
