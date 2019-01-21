@@ -65,6 +65,17 @@
 #define TPKTOOL_READINGMODE_PLAT_360 5
 #define TPKTOOL_WRITINGMODE_PLAT_360 5
 
+#define TPKTOOL_READINGMODE_PLAT_PS2 6
+#define TPKTOOL_WRITINGMODE_PLAT_PS2 6
+#define TPKTOOL_READINGMODE_PLAT_V2_PS2 7
+#define TPKTOOL_WRITINGMODE_PLAT_V2_PS2 7
+
+#define TPKTOOL_READINGMODE_PLAT_XBOX 8
+#define TPKTOOL_WRITINGMODE_PLAT_XBOX 8
+
+#define TPKTOOL_READINGMODE_PLAT_WII 9
+#define TPKTOOL_WRITINGMODE_PLAT_WII 9
+
 #define TPK_COMPRESSION_TYPE_RGBA 0x20
 #define TPK_COMPRESSION_TYPE_DXT1 0x22
 #define TPK_COMPRESSION_TYPE_DXT3 0x24
@@ -75,11 +86,15 @@
 Usage: [-w/-h/-?] InFile [OutFile]\n\n\
 Default: InFile = TPK file | OutFile = Output folder path\n\
 -2     : TPK v2 mode (UG2 & MW), InFile = TPK file | OutFile = Output folder path\n\
+-PS2   : PS2 mode (TPK v3), InFile = TPK file | OutFile = Output folder path\n\
+-PS2-2 : PS2 mode (TPK v2), InFile = TPK file | OutFile = Output folder path\n\
 -PS3   : PS3 mode (TPK v3 only), InFile = TPK file | OutFile = Output folder path\n\
 -360   : 360 mode (TPK v3), InFile = TPK file | OutFile = Output folder path\n\
 -360-2 : 360 mode (TPK v2), InFile = TPK file | OutFile = Output folder path\n\
 -w     : Writing mode (TPK v3), InFile = TPK settings ini file | OutFile = Output file name\n\
 -w2    : Writing mode (TPK v2), InFile = TPK settings ini file | OutFile = Output file name\n\
+-wPS2  : Writing mode (PS2 TPK v3), InFile = TPK settings ini file | OutFile = Output file name\n\
+-wPS2-2: Writing mode (PS2 TPK v2), InFile = TPK settings ini file | OutFile = Output file name\n\
 -wPS3  : Writing mode (PS3 TPK v3), InFile = TPK settings ini file | OutFile = Output file name\n\
 -w360  : Writing mode (360 TPK v3), InFile = TPK settings ini file | OutFile = Output file name\n\
 -w360-2: Writing mode (360 TPK v2), InFile = TPK settings ini file | OutFile = Output file name\n\
@@ -88,7 +103,7 @@ Default: InFile = TPK file | OutFile = Output folder path\n\
 \nDDS files are extracted to their respective TPK hash directory.\n\
 Compressed TPKs are NOT fully supported yet.\n\
 All games except World are currently supported!\n\
-While this tool can extract data for other platforms, it only fully works with PC! PS3 & 360 support WIP!"
+While this tool can extract data for other platforms, it only fully works with PC! Console support WIP!"
 
 #define PRINTTYPE_ERROR "ERROR:"
 #define PRINTTYPE_INFO "INFO:"
@@ -616,70 +631,79 @@ int SpitSettingsFile(const char* OutFileName, TexStruct *InTexStruct, TPKToolInt
 
 int OutputInfoToFile(const char* OutFileName, TexStruct *InTexStruct, TPKToolInternalStruct *InTPKToolInternal, GamePixelFormatStruct *InGamePixelFormat, TPKAnimStruct *InTPKAnim)
 {
-	// not very useful... info can be seen in the ini now
-	//FILE *fout = fopen(OutFileName, "w");;
-	//fprintf(fout, "TPK info:\n");
-	//fprintf(fout, "TPK type name: %s\n", (*InTPKToolInternal).TPKTypeName);
-	//fprintf(fout, "TPK type value: %d\n", (*InTPKToolInternal).TPKTypeValue);
-	//fprintf(fout, "TPK path: %s\n", (*InTPKToolInternal).TPKPathName);
-	//for (unsigned int i = 0; i <= 6; i++)
-	//	fprintf(fout, "TPK hash array [%d] = %#08X\n", i, (*InTPKToolInternal).HashArray[i]);
-	//for (unsigned int i = 0; i < (*InTPKToolInternal).TextureCategoryHashCount; i++)
-	//	fprintf(fout, "Texture %d hash: %#08X\n", i, (*InTPKToolInternal).TextureCategoryHashArray[i]);
-	//fprintf(fout, "Total texture hash count: %d\n", (*InTPKToolInternal).TextureCategoryHashCount);
-	//fprintf(fout, "\n");
-	//fprintf(fout, "Textures:\n");
-	//for (unsigned int i = 0; i < (*InTPKToolInternal).TextureDataCount; i++)
-	//{
-	//	fprintf(fout, "\nTexture name: %s\n", InTexStruct[i].TexName);
-	//	fprintf(fout, "Hash: %#08X\n", InTexStruct[i].Child4.Hash);
-	//	fprintf(fout, "Hash2: %#08X\n", InTexStruct[i].Child4.Hash2);
-	//	fprintf(fout, "Data offset: %#08X\n", InTexStruct[i].Child4.DataOffset);
-	//	fprintf(fout, "Data size: %#08X\n", InTexStruct[i].Child4.DataSize);
-	//	fprintf(fout, "Unknown value 1: %#08X\n", InTexStruct[i].Child4.Unknown1);
-	//	fprintf(fout, "Scaler: %#08X\n", InTexStruct[i].Child4.Scaler);
-	//	fprintf(fout, "Width: %d\n", InTexStruct[i].Child4.ResX);
-	//	fprintf(fout, "Height: %d\n", InTexStruct[i].Child4.ResY);
-	//	fprintf(fout, "Mipmap count: %d\n", InTexStruct[i].Child4.MipmapCount);
-	//	fprintf(fout, "Unknown value 3: %X\n", InTexStruct[i].Child4.Unknown3);
-	//	//fprintf(fout, "Texture flags: %X\n", InTexStruct[i].Child4.TexFlags);
-	//	fprintf(fout, "Unknown value 4: %#08X\n", InTexStruct[i].Child4.Unknown4);
-	//	fprintf(fout, "Blending mode: %#08X\n", InTexStruct[i].Child4.Unknown5);
-	//	fprintf(fout, "Unknown value 6: %#08X\n", InTexStruct[i].Child4.Unknown6);
-	//	fprintf(fout, "Unknown value 7: %#08X\n", InTexStruct[i].Child4.Unknown7);
-	//	fprintf(fout, "Unknown value 8: %#08X\n", InTexStruct[i].Child4.Unknown8);
-	//	fprintf(fout, "Unknown value 9: %#08X\n", InTexStruct[i].Child4.Unknown9);
-	//	fprintf(fout, "Unknown value 10: %#08X\n", InTexStruct[i].Child4.Unknown10);
-	//	fprintf(fout, "Unknown value 11: %#08X\n", InTexStruct[i].Child4.Unknown11);
-	//	fprintf(fout, "Unknown value 12: %#08X\n", InTexStruct[i].Child4.Unknown12);
-	//	fprintf(fout, "Pixel format data:\n");
-	//	fprintf(fout, "Pixel format: %#08X\n", InGamePixelFormat[i].FourCC);
-	//	fprintf(fout, "Unknown pixel format value 1: %#08X\n", InGamePixelFormat[i].Unknown1);
-	//	fprintf(fout, "Unknown pixel format value 2: %#08X\n", InGamePixelFormat[i].Unknown2);
-	//	/*fprintf(fout, "Unknown pixel format value 3: %#08X\n", texture[i].GamePixelFormat.Unknown3);
-	//	fprintf(fout, "Unknown pixel format value 4: %#08X\n", texture[i].GamePixelFormat.Unknown4);
-	//	fprintf(fout, "Unknown pixel format value 5: %#08X\n", texture[i].GamePixelFormat.Unknown5);*/
-	//}
-	//fprintf(fout, "Total texture data entries: %d\n", (*InTPKToolInternal).TextureDataCount);
-	//fprintf(fout, "\nAnimations:\n");
-	//fprintf(fout, "Animation count: %d\n", (*InTPKToolInternal).AnimCounter);
-	//for (unsigned int i = 0; i < (*InTPKToolInternal).AnimCounter; i++)
-	//{
-	//	fprintf(fout, "\nAnimation %d:\n", i);
-	//	fprintf(fout, "Name: %s\n", InTPKAnim[i].Name);
-	//	fprintf(fout, "Hash: %X\n", InTPKAnim[i].Hash);
-	//	fprintf(fout, "Frames: %d\n", InTPKAnim[i].Frames);
-	//	fprintf(fout, "Framerate: %d FPS\n", InTPKAnim[i].Framerate);
-	//	fprintf(fout, "Unknown 1: %X\n", InTPKAnim[i].Unknown1);
-	//	fprintf(fout, "Unknown 2: %X\n", InTPKAnim[i].Unknown2);
-	//	fprintf(fout, "Unknown 3: %X\n", InTPKAnim[i].Unknown3);
-	//	fprintf(fout, "Unknown 4: %X\n", InTPKAnim[i].Unknown4);
-	//	fprintf(fout, "Unknown 5: %X\n", InTPKAnim[i].Unknown5);
-	//	fprintf(fout, "Unknown 6: %X\n", InTPKAnim[i].Unknown6);
-	//	for (unsigned int j = 0; j < InTPKAnim[i].Frames; j++)
-	//		fprintf(fout, "Frame %d hash: %X\n", j, (*InTPKToolInternal).AnimFrameHashArray[i][j]);
-	//}
-	//fclose(fout);
+	FILE *fout = fopen(OutFileName, "w");;
+	fprintf(fout, "TPK info:\n");
+	fprintf(fout, "TPK type name: %s\n", (*InTPKToolInternal).TPKTypeName);
+	fprintf(fout, "TPK version: %d\n", (*InTPKToolInternal).TPKTypeValue);
+	fprintf(fout, "TPK filename: %s\n", (*InTPKToolInternal).TPKPathName);
+	fprintf(fout, "TPK filename hash = %#08X\n", (*InTPKToolInternal).HashArray[0]);
+	for (unsigned int i = 0; i < (*InTPKToolInternal).TextureCategoryHashCount; i++)
+		fprintf(fout, "Texture %d hash: %#08X\n", i, (*InTPKToolInternal).TextureCategoryHashArray[i]);
+	fprintf(fout, "Total texture hash count: %d\n", (*InTPKToolInternal).TextureCategoryHashCount);
+	fprintf(fout, "\n");
+	fprintf(fout, "Textures:\n");
+	for (unsigned int i = 0; i < (*InTPKToolInternal).TextureDataCount; i++)
+	{
+		fprintf(fout, "\nTexture name: %s\n", InTexStruct[i].TexName);
+		fprintf(fout, "Name hash: %#08X\n", InTexStruct[i].Child4.NameHash);
+		fprintf(fout, "Class name hash: %#08X\n", InTexStruct[i].Child4.ClassNameHash);
+		fprintf(fout, "Image placement: %#08X\n", InTexStruct[i].Child4.ImagePlacement);
+		fprintf(fout, "Image size: %#08X\n", InTexStruct[i].Child4.ImageSize);
+		fprintf(fout, "Palette placement: %#08X\n", InTexStruct[i].Child4.PalettePlacement);
+		fprintf(fout, "Palette size: %#08X\n", InTexStruct[i].Child4.PaletteSize);
+		fprintf(fout, "Base image size: %#08X\n", InTexStruct[i].Child4.BaseImageSize);
+		fprintf(fout, "Width: %d\n", InTexStruct[i].Child4.Width);
+		fprintf(fout, "Height: %d\n", InTexStruct[i].Child4.Height);
+		fprintf(fout, "Shift width: %d\n", InTexStruct[i].Child4.ShiftWidth);
+		fprintf(fout, "Shift height: %d\n", InTexStruct[i].Child4.ShiftHeight);
+		fprintf(fout, "Image compression type: %#08X\n", InTexStruct[i].Child4.ImageCompressionType);
+		fprintf(fout, "Palette compression type: %d\n", InTexStruct[i].Child4.PaletteCompressionType);
+		fprintf(fout, "Pallete entries: %d\n", InTexStruct[i].Child4.NumPaletteEntries);
+		fprintf(fout, "Mipmap levels: %d\n", InTexStruct[i].Child4.NumMipMapLevels);
+		fprintf(fout, "Tilable UV: %d\n", InTexStruct[i].Child4.TilableUV);
+		fprintf(fout, "Bias level: %d\n", InTexStruct[i].Child4.BiasLevel);
+		fprintf(fout, "Rendering order: %d\n", InTexStruct[i].Child4.RenderingOrder);
+		fprintf(fout, "Tilable UV: %d\n", InTexStruct[i].Child4.TilableUV);
+		fprintf(fout, "Scroll type: %d\n", InTexStruct[i].Child4.ScrollType);
+		fprintf(fout, "Used flag: %d\n", InTexStruct[i].Child4.UsedFlag);
+		fprintf(fout, "Apply alpha sorting: %d\n", InTexStruct[i].Child4.ApplyAlphaSorting);
+		fprintf(fout, "Alpha usage type: %d\n", InTexStruct[i].Child4.AlphaUsageType);
+		fprintf(fout, "Alpha blend type: %d\n", InTexStruct[i].Child4.AlphaBlendType);
+		fprintf(fout, "Flags: %d\n", InTexStruct[i].Child4.Flags);
+		fprintf(fout, "Mipmap bias type: %d\n", InTexStruct[i].Child4.MipmapBiasType);
+		fprintf(fout, "Scroll time step: %d\n", InTexStruct[i].Child4.ScrollTimeStep);
+		fprintf(fout, "Scroll speed S: %d\n", InTexStruct[i].Child4.ScrollSpeedS);
+		fprintf(fout, "Scroll speed T: %d\n", InTexStruct[i].Child4.ScrollSpeedT);
+		fprintf(fout, "Offset S: %#08X\n", InTexStruct[i].Child4.OffsetS);
+		fprintf(fout, "Offset T: %#08X\n", InTexStruct[i].Child4.OffsetT);
+		fprintf(fout, "Scale S: %d\n", InTexStruct[i].Child4.ScaleS);
+		fprintf(fout, "Scale T: %d\n", InTexStruct[i].Child4.ScaleT);
+		fprintf(fout, "Pixel format data:\n");
+		fprintf(fout, "Pixel format: %#08X\n", InGamePixelFormat[i].FourCC);
+		fprintf(fout, "Unknown pixel format value 1: %#08X\n", InGamePixelFormat[i].Unknown1);
+		fprintf(fout, "Unknown pixel format value 2: %#08X\n", InGamePixelFormat[i].Unknown2);
+		fprintf(fout, "Unknown pixel format value 3: %#08X\n", InGamePixelFormat[i].Unknown3);
+	}
+	fprintf(fout, "Total texture data entries: %d\n", (*InTPKToolInternal).TextureDataCount);
+	fprintf(fout, "\nAnimations:\n");
+	fprintf(fout, "Animation count: %d\n", (*InTPKToolInternal).AnimCounter);
+	for (unsigned int i = 0; i < (*InTPKToolInternal).AnimCounter; i++)
+	{
+		fprintf(fout, "\nAnimation %d:\n", i);
+		fprintf(fout, "Name: %s\n", InTPKAnim[i].Name);
+		fprintf(fout, "Hash: %X\n", InTPKAnim[i].Hash);
+		fprintf(fout, "Frames: %d\n", InTPKAnim[i].Frames);
+		fprintf(fout, "Framerate: %d FPS\n", InTPKAnim[i].Framerate);
+		fprintf(fout, "Unknown 1: %X\n", InTPKAnim[i].Unknown1);
+		fprintf(fout, "Unknown 2: %X\n", InTPKAnim[i].Unknown2);
+		fprintf(fout, "Unknown 3: %X\n", InTPKAnim[i].Unknown3);
+		fprintf(fout, "Unknown 4: %X\n", InTPKAnim[i].Unknown4);
+		fprintf(fout, "Unknown 5: %X\n", InTPKAnim[i].Unknown5);
+		fprintf(fout, "Unknown 6: %X\n", InTPKAnim[i].Unknown6);
+		for (unsigned int j = 0; j < InTPKAnim[i].Frames; j++)
+			fprintf(fout, "Frame %d hash: %X\n", j, (*InTPKToolInternal).AnimFrameHashArray[i][j]);
+	}
+	fclose(fout);
 	return 1;
 }
 
@@ -808,16 +832,17 @@ int ByteSwapBuffer_Long(void* buffer, unsigned int size)
 
 	return 0;
 }
-
+#ifndef TPKTOOL_XDK
 // 360 deswizzling stuff
 // source from: https://github.com/emoose/FtexTool (thanks!)
 // converted to C / C++ by me
+
 int Align(int ptr, int alignment)
 {
 	return ((ptr + alignment - 1) & ~(alignment - 1));
 }
 
-#ifndef TPKTOOL_XDK
+
 int appLog2(int n)
 {
 	int r;
@@ -929,17 +954,10 @@ void* Deswizzle(void* data, int size, int width, int height, int numMipMaps, uns
 
 		int size = (width1 / BlockSizeX) * (height1 / BlockSizeY) * bytesPerBlock;
 
-		//void* mipMapData = malloc(size);
-		//memcpy(mipMapData, (void*)((unsigned int)data + curAddr), size);
-		//Array.Copy(data, curAddr, mipMapData, 0, size);
-
 		UntiledData = UntileCompressedX360Texture((void*)((unsigned int)data + curAddr), size, width1, width, height1, BlockSizeX, BlockSizeY, bytesPerBlock);
 
 		memcpy((void*)((unsigned int)data + curAddr), UntiledData, size);
 		free(UntiledData);
-
-		//Array.Copy(mipMapData, 0, data, curAddr, size);
-		//free(mipMapData);
 
 		curAddr += size;
 		width /= 2;
@@ -951,7 +969,6 @@ void* Deswizzle(void* data, int size, int width, int height, int numMipMaps, uns
 void* Deswizzle(void* data, int size, int width, int height, int numMipMaps, unsigned int FourCC)
 {
 	DWORD PixelFormat = 0;
-	void* OutBuffer = malloc(size);
 
 	int BlockSizeX = 4;
 	int BlockSizeY = 4;
@@ -1009,22 +1026,15 @@ void* Deswizzle(void* data, int size, int width, int height, int numMipMaps, uns
 
 	for (int i = 0; i < numMipMaps; i++)
 	{
-		int width1 = Align(InputWidth, X360AlignX);
-		int height1 = Align(InputHeight, X360AlignY);
-
-		int size = (width1 / BlockSizeX) * (height1 / BlockSizeY) * bytesPerBlock;
+		int size = (InputWidth / BlockSizeX) * (InputHeight / BlockSizeY) * bytesPerBlock;
 
 		Pitch = (InputWidth / BlockSizeX) * bytesPerBlock;
-		XGUntileTextureLevel(InputWidth, InputHeight, 0, PixelFormat, XGTILE_NONPACKED, OutBuffer, Pitch, NULL, (void*)((unsigned int)data + curAddr), NULL);
-
-		memcpy((void*)((unsigned int)data + curAddr), OutBuffer, size);
+		XGUntileTextureLevel(InputWidth, InputHeight, 0, PixelFormat, XGTILE_NONPACKED, (void*)((unsigned int)data + curAddr), Pitch, NULL, (void*)((unsigned int)data + curAddr), NULL);
 
 		curAddr += size;
 		InputWidth /= 2;
 		InputHeight /= 2;
 	}
-
-	free(OutBuffer);
 
 	return data;
 }

@@ -143,6 +143,14 @@ bool SettingsReader(const char* InFileName, TPKToolInternalStruct *InTPKInternal
 			fscanf(fin, "PixelFormatUnk1 = %X\n", &InGamePixelFormat[(*InTPKInternal).TextureCategoryHashCount].Unknown1);
 			fscanf(fin, "PixelFormatUnk2 = %X\n", &InGamePixelFormat[(*InTPKInternal).TextureCategoryHashCount].Unknown2);
 			fscanf(fin, "PixelFormatUnk3 = %X\n", &InGamePixelFormat[(*InTPKInternal).TextureCategoryHashCount].Unknown3);
+
+			if (!InGamePixelFormat[(*InTPKInternal).TextureCategoryHashCount].Unknown2)
+			{
+				// using mostcommon values
+				//InGamePixelFormat[(*InTPKInternal).TextureCategoryHashCount].Unknown1 = 1;
+				InGamePixelFormat[(*InTPKInternal).TextureCategoryHashCount].Unknown2 = 5;
+				InGamePixelFormat[(*InTPKInternal).TextureCategoryHashCount].Unknown3 = 6;
+			}
 		}
 		else
 		{
@@ -173,7 +181,8 @@ bool SettingsReader(const char* InFileName, TPKToolInternalStruct *InTPKInternal
 		(*InTPKInternal).TextureCategoryHashCount++;
 	}
 
-	SortTexturesByHash(InTPKInternal, InTexStruct, InGamePixelFormat);
+	if ((*InTPKInternal).TextureCategoryHashCount > 1)
+		SortTexturesByHash(InTPKInternal, InTexStruct, InGamePixelFormat);
 
 	for (unsigned int i = 0; i < (*InTPKInternal).TextureCategoryHashCount; i++)
 	{
@@ -249,6 +258,31 @@ int main(int argc, char *argv[])
 			printf("%s Going into 360 TPKv2 mode!\n", PRINTTYPE_INFO);
 			WritingMode = TPKTOOL_WRITINGMODE_PLAT_V2_360;
 		}
+		else if (strncmp(argv[1] + 2, "PS2", 3) == 0)
+		{
+			printf("%s Going into PS2 mode!\n", PRINTTYPE_INFO);
+			WritingMode = TPKTOOL_WRITINGMODE_PLAT_PS2;
+			printf("%s Unimplemented... Code coming soon.\n", PRINTTYPE_INFO);
+			return 0;
+		}
+		else if (strncmp(argv[1] + 2, "PS2-2", 5) == 0)
+		{
+			printf("%s Going into PS2 TPKv2 mode!\n", PRINTTYPE_INFO);
+			WritingMode = TPKTOOL_WRITINGMODE_PLAT_V2_PS2;
+			printf("%s Unimplemented... Code coming soon.\n", PRINTTYPE_INFO);
+			return 0;
+		}
+	}
+
+	if (WritingMode)
+	{
+		//strcpy(OutputFilePath, argv[argc - 1]);
+		if (!SettingsReader(argv[2], TPKToolStuff, texture, GamePixelFormat, TPKAnim))
+			return -1;
+		PrecalculateTotalSizes(TPKToolStuff, texture, TPKAnim);
+		MasterChunkWriter(argv[argc - 1], TPKToolStuff, texture, GamePixelFormat, TPKAnim);
+		free(TPKToolStuff);
+		return 0;
 	}
 
 	if (strncmp(argv[1], "-2", 2) == 0)
@@ -275,15 +309,23 @@ int main(int argc, char *argv[])
 		ReadingMode = TPKTOOL_READINGMODE_PLAT_V2_360;
 	}
 
-	if (WritingMode)
+	else if (strncmp(argv[1], "-PS2", 6) == 0)
 	{
-		//strcpy(OutputFilePath, argv[argc - 1]);
-		if (!SettingsReader(argv[2], TPKToolStuff, texture, GamePixelFormat, TPKAnim))
-			return -1;
-	//	SortTexturesByHash(TPKToolStuff, texture, GamePixelFormat);
-		PrecalculateTotalSizes(TPKToolStuff, texture, TPKAnim);
-		MasterChunkWriter(argv[argc - 1], TPKToolStuff, texture, GamePixelFormat, TPKAnim);
-		free(TPKToolStuff);
+		printf("%s Going into PS2 mode!\n", PRINTTYPE_INFO);
+		ReadingMode = TPKTOOL_READINGMODE_PLAT_PS2;
+
+		//unimplemented... temp code.
+		printf("%s Unimplemented... Code coming soon. Use PC modes to get some data out for now.\n", PRINTTYPE_INFO);
+		return 0;
+	}
+
+	else if (strncmp(argv[1], "-PS2-2", 6) == 0)
+	{
+		printf("%s Going into PS2 TPKv2 mode!\n", PRINTTYPE_INFO);
+		ReadingMode = TPKTOOL_READINGMODE_PLAT_V2_PS2;
+
+		//unimplemented... temp code.
+		printf("%s Unimplemented... Code coming soon. Use PC modes to get some data out for now.\n", PRINTTYPE_INFO);
 		return 0;
 	}
 
@@ -348,11 +390,11 @@ int main(int argc, char *argv[])
 		MasterChunkReader(argv[1], (*TPKToolStuff).OutputPath, TPKToolStuff, texture, GamePixelFormat, TPKAnim, &TPKLink);
 	}
 	// phasing out stat file in favor of more detailed ini
-	//strcpy((*TPKToolStuff).TotalFilePath, (*TPKToolStuff).OutputPath);
-	//strcat((*TPKToolStuff).TotalFilePath, "\\");
-	//strcat((*TPKToolStuff).TotalFilePath, (*TPKToolStuff).StatFileName);
-	//printf("%s Outputting statistics to: %s\n", PRINTTYPE_INFO, (*TPKToolStuff).TotalFilePath);
-	//OutputInfoToFile((*TPKToolStuff).TotalFilePath, texture, TPKToolStuff, GamePixelFormat, TPKAnim);
+	strcpy((*TPKToolStuff).TotalFilePath, (*TPKToolStuff).OutputPath);
+	strcat((*TPKToolStuff).TotalFilePath, "\\");
+	strcat((*TPKToolStuff).TotalFilePath, (*TPKToolStuff).StatFileName);
+	printf("%s Outputting statistics to: %s\n", PRINTTYPE_INFO, (*TPKToolStuff).TotalFilePath);
+	OutputInfoToFile((*TPKToolStuff).TotalFilePath, texture, TPKToolStuff, GamePixelFormat, TPKAnim);
 
 	strcpy((*TPKToolStuff).TotalFilePath, (*TPKToolStuff).OutputPath);
 	strcat((*TPKToolStuff).TotalFilePath, "\\");
