@@ -1038,7 +1038,7 @@ unsigned int Deswizzle(void* data, int size, int width, int height, int numMipMa
 		Pitch = (InputWidth / BlockSizeX) * bytesPerBlock;
 		
 		
-		if ((InputWidth < X360AlignX) && (i > 0))
+		if (((InputWidth < X360AlignX) && (InputHeight < X360AlignY)) && (i > 0))
 		{
 			// if the mipmap size is smaller than the 360's minimum row size, revert the read address to the previous state...
 			if (!bWentFromAligned)
