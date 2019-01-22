@@ -832,7 +832,7 @@ int ByteSwapBuffer_Long(void* buffer, unsigned int size)
 
 	return 0;
 }
-#ifndef TPKTOOL_XDK
+
 // 360 deswizzling stuff
 // source from: https://github.com/emoose/FtexTool (thanks!)
 // converted to C / C++ by me
@@ -841,7 +841,7 @@ int Align(int ptr, int alignment)
 {
 	return ((ptr + alignment - 1) & ~(alignment - 1));
 }
-
+#ifndef TPKTOOL_XDK
 
 int appLog2(int n)
 {
@@ -981,7 +981,13 @@ unsigned int Deswizzle(void* data, int size, int width, int height, int numMipMa
 	int InputWidth = width;
 	int InputHeight = height;
 
-	int curAddr = 0;
+//	int curAddr = 0;
+	int curReadAddr = 0;
+	int curWriteAddr = 0;
+	int texsize = 0;
+	int texsizealign = 0;
+	int previoustexsize = 0;
+	bool bWentFromAligned = false;
 
 	switch (FourCC)
 	{
@@ -1026,17 +1032,48 @@ unsigned int Deswizzle(void* data, int size, int width, int height, int numMipMa
 
 	for (int i = 0; i < numMipMaps; i++)
 	{
-		int size = (InputWidth / BlockSizeX) * (InputHeight / BlockSizeY) * bytesPerBlock;
+		int width1 = Align(InputWidth, X360AlignX);
+		int height1 = Align(InputHeight, X360AlignY);
 
 		Pitch = (InputWidth / BlockSizeX) * bytesPerBlock;
-		XGUntileTextureLevel(InputWidth, InputHeight, 0, PixelFormat, XGTILE_NONPACKED, (void*)((unsigned int)data + curAddr), Pitch, NULL, (void*)((unsigned int)data + curAddr), NULL);
+		
+		
+		if ((InputWidth < X360AlignX) && (i > 0))
+		{
+			// if the mipmap size is smaller than the 360's minimum row size, revert the read address to the previous state...
+			if (!bWentFromAligned)
+			{
+				//previoustexsize = texsize;
+				curReadAddr -= texsize;
+			}
+			else
+			{
+				curReadAddr += curReadAddr - curWriteAddr - texsize;
+			}
+			// ... and recalculate the new location specifically for this mipmap.
+			texsize = (InputWidth / BlockSizeX) * (InputHeight / BlockSizeY) * bytesPerBlock;
+			texsizealign = (width1 / BlockSizeX) * (height1 / BlockSizeY) * bytesPerBlock;
+			curReadAddr += texsizealign;
 
-		curAddr += size;
+			XGUntileTextureLevel(InputWidth, InputHeight, 0, PixelFormat, XGTILE_NONPACKED, (void*)((unsigned int)data + curWriteAddr), Pitch, NULL, (void*)((unsigned int)data + curReadAddr), NULL);
+			bWentFromAligned = true;
+		}
+		else
+		{
+			texsize = (InputWidth / BlockSizeX) * (InputHeight / BlockSizeY) * bytesPerBlock;
+
+			XGUntileTextureLevel(InputWidth, InputHeight, 0, PixelFormat, XGTILE_NONPACKED, (void*)((unsigned int)data + curWriteAddr), Pitch, NULL, (void*)((unsigned int)data + curReadAddr), NULL);
+			curReadAddr += texsize;
+			bWentFromAligned = false;
+		}
+
+		curWriteAddr += texsize;
+
 		InputWidth /= 2;
 		InputHeight /= 2;
 	}
 
-	return curAddr;
+	return curWriteAddr;
 }
 
 #endif
