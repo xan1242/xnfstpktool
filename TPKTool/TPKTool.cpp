@@ -259,7 +259,7 @@ int main(int argc, char *argv[])
 	TPKToolInternalStruct *TPKToolStuff = (TPKToolInternalStruct*)calloc(1, sizeof(TPKToolInternalStruct));
 	struct stat st = { 0 }; // filestat for folder existence
 
-	printf("Xanvier's NFS TPK Tool\n\n");
+	printf("Speed TexturePack Tool\n\n");
 
 	if (argc <= 1)
 	{
