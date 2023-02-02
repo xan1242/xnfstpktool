@@ -109,7 +109,7 @@ bool SettingsReader(const char* InFileName, TPKToolInternalStruct *InTPKInternal
 		for (unsigned int j = 0; j < InTPKAnim[i].Frames; j++)
 		{
 			sprintf_s(AnimFrameKey, "Frame%d", j);
-			(*InTPKInternal).AnimFrameHashArray[i][j] = (uint32_t)stoi(ini[AnimSection][AnimFrameKey], nullptr, 0);
+			(*InTPKInternal).AnimFrameHashArray[i][j] = (uint32_t)stoul(ini[AnimSection][AnimFrameKey], nullptr, 0);
 		}
 	}
 
