@@ -46,14 +46,35 @@ int ReadDDSData(TexStruct *InTexture, GamePixelFormatStruct *InGamePixelFormat, 
 	fread(&DDSHeaderStruct, sizeof(DirectX::DDS_HEADER), 1, fin);
 	InTexture[TexNumber].Child4.Height = DDSHeaderStruct.dwHeight;
 	InTexture[TexNumber].Child4.Width = DDSHeaderStruct.dwWidth;
+	uint32_t ShiftHeight = DDSHeaderStruct.dwHeight;
+	uint32_t ShiftWidth = DDSHeaderStruct.dwWidth;
+	uint32_t shift_counter = 0;
+
+	while (ShiftHeight != 1)
+	{
+		ShiftHeight /= 2;
+		shift_counter++;
+	}
+
+	InTexture[TexNumber].Child4.ShiftHeight = (uint8_t)shift_counter;
+
+	shift_counter = 0;
+	while (ShiftWidth != 1)
+	{
+		ShiftWidth /= 2;
+		shift_counter++;
+	}
+	InTexture[TexNumber].Child4.ShiftWidth = (uint8_t)shift_counter;
+
+
 	InTexture[TexNumber].Child4.NumMipMapLevels = DDSHeaderStruct.dwMipMapCount;
 	if (!InTexture[TexNumber].Child4.NumMipMapLevels)
 		InTexture[TexNumber].Child4.NumMipMapLevels = 1;
 
+	// dropped P8 repack support
 	if (DDSHeaderStruct.ddspf.dwFlags >= 0x40)
 	{
-		// TODO: P8 support
-		InGamePixelFormat[TexNumber].FourCC = 0x15;
+		InGamePixelFormat[TexNumber].FourCC = FOURCC_ARGB;
 		InTexture[TexNumber].Child4.ImageCompressionType = TPK_COMPRESSION_TYPE_RGBA;
 	}
 	else
@@ -61,13 +82,13 @@ int ReadDDSData(TexStruct *InTexture, GamePixelFormatStruct *InGamePixelFormat, 
 		InGamePixelFormat[TexNumber].FourCC = DDSHeaderStruct.ddspf.dwFourCC;
 		switch (InGamePixelFormat[TexNumber].FourCC)
 		{
-		case 0x31545844:
+		case FOURCC_DXT1:
 			InTexture[TexNumber].Child4.ImageCompressionType = TPK_COMPRESSION_TYPE_DXT1;
 			break;
-		case 0x33545844:
+		case FOURCC_DXT3:
 			InTexture[TexNumber].Child4.ImageCompressionType = TPK_COMPRESSION_TYPE_DXT3;
 			break;
-		case 0x35545844:
+		case FOURCC_DXT5:
 			InTexture[TexNumber].Child4.ImageCompressionType = TPK_COMPRESSION_TYPE_DXT5;
 			break;
 		default:

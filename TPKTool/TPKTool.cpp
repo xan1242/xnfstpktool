@@ -1,8 +1,11 @@
+// BIG BIG BIG BIG TODO: redo ALL ini parsing with an ini library like mINI, fscanf stinks for that, especially in the way it's implemented here
+
 // XNFSTPKTool
 // NFS TPK extractor & repacker
 // TODO: fix 64MB memory leak
-// TODO: finish TPK v2 support
+// TODO: finish TPK v4- support
 // 08/2018 - v2: scrapped indexing mode, too ambicious for a simple commandline tool, will rework into a separate library so another tool can do it
+// 02/2023 - NOTE: build only with "XDKLibs", currently 360 stuff is broken...
 
 #include "stdafx.h"
 #include "DDS.h"
@@ -80,24 +83,24 @@ bool SettingsReader(const char* InFileName, TPKToolInternalStruct *InTPKInternal
 	fscanf(fin, "Name = %s\n", &(*InTPKInternal).TPKTypeName);
 	fscanf(fin, "Version = %d\n", &(*InTPKInternal).TPKTypeValue);
 	fscanf(fin, "Filename = %s\n", &(*InTPKInternal).TPKPathName);
-	fscanf(fin, "FilenameHash = %X\n", &(*InTPKInternal).HashArray[0]);
+	fscanf(fin, "FilenameHash = 0x%X\n", &(*InTPKInternal).HashArray[0]);
 	fscanf(fin, "Animations = %d\n", &(*InTPKInternal).AnimCounter);
 
 	for (unsigned int i = 0; i < (*InTPKInternal).AnimCounter; i++)
 	{
 		fscanf(fin, "\n[Anim%d]\n", &ReadNumber);
 		fscanf(fin, "Name = %s\n", &InTPKAnim[ReadNumber].Name);
-		fscanf(fin, "Hash = %X\n", &InTPKAnim[ReadNumber].Hash);
+		fscanf(fin, "Hash = 0x%X\n", &InTPKAnim[ReadNumber].Hash);
 		fscanf(fin, "Frames = %hhd\n", &InTPKAnim[ReadNumber].Frames);
 		fscanf(fin, "Framerate = %hhd\n", &InTPKAnim[ReadNumber].Framerate);
-		fscanf(fin, "Unknown1 = %X\n", &InTPKAnim[ReadNumber].Unknown1);
-		fscanf(fin, "Unknown2 = %X\n", &InTPKAnim[ReadNumber].Unknown2);
-		fscanf(fin, "Unknown3 = %hX\n", &InTPKAnim[ReadNumber].Unknown3);
-		fscanf(fin, "Unknown4 = %X\n", &InTPKAnim[ReadNumber].Unknown4);
-		fscanf(fin, "Unknown5 = %X\n", &InTPKAnim[ReadNumber].Unknown5);
-		fscanf(fin, "Unknown6 = %X\n", &InTPKAnim[ReadNumber].Unknown6);
+		fscanf(fin, "Unknown1 = 0x%X\n", &InTPKAnim[ReadNumber].Unknown1);
+		fscanf(fin, "Unknown2 = 0x%X\n", &InTPKAnim[ReadNumber].Unknown2);
+		fscanf(fin, "Unknown3 = 0x%hX\n", &InTPKAnim[ReadNumber].Unknown3);
+		fscanf(fin, "Unknown4 = 0x%X\n", &InTPKAnim[ReadNumber].Unknown4);
+		fscanf(fin, "Unknown5 = 0x%X\n", &InTPKAnim[ReadNumber].Unknown5);
+		fscanf(fin, "Unknown6 = 0x%X\n", &InTPKAnim[ReadNumber].Unknown6);
 		for (unsigned int j = 0; j < InTPKAnim[ReadNumber].Frames; j++)
-			fscanf(fin, "Frame%d = %X\n", &ReadNumber2, &(*InTPKInternal).AnimFrameHashArray[ReadNumber][j]);
+			fscanf(fin, "Frame%d = 0x%X\n", &ReadNumber2, &(*InTPKInternal).AnimFrameHashArray[ReadNumber][j]);
 	}
 
 	while (!feof(fin))
@@ -105,7 +108,14 @@ bool SettingsReader(const char* InFileName, TPKToolInternalStruct *InTPKInternal
 		fscanf(fin, "\n[%X]\n", &InTexStruct[(*InTPKInternal).TextureCategoryHashCount].Child4.NameHash);
 		(*InTPKInternal).TextureCategoryHashArray[(*InTPKInternal).TextureCategoryHashCount] = InTexStruct[(*InTPKInternal).TextureCategoryHashCount].Child4.NameHash;
 
-		fscanf(fin, "File = %s\n", &InTexStruct[(*InTPKInternal).TextureCategoryHashCount].FilesystemPath);
+		//fscanf(fin, "File = %s\n", &InTexStruct[(*InTPKInternal).TextureCategoryHashCount].FilesystemPath);
+		// 07-2021. FIX - read string after 7 chars...
+		fseek(fin, 7, SEEK_CUR);
+		//printf("READING AT: 0x%X\n", ftell(fin));
+		fgets(InTexStruct[(*InTPKInternal).TextureCategoryHashCount].FilesystemPath, 255, fin);
+		InTexStruct[(*InTPKInternal).TextureCategoryHashCount].FilesystemPath[strlen(InTexStruct[(*InTPKInternal).TextureCategoryHashCount].FilesystemPath) - 1] = 0;
+		//strcpy(InTexStruct[(*InTPKInternal).TextureCategoryHashCount].FilesystemPath, &InTexStruct[(*InTPKInternal).TextureCategoryHashCount].FilesystemPath[7]);
+
 		if (!(CheckIfValidDDS(InTexStruct[(*InTPKInternal).TextureCategoryHashCount].FilesystemPath)))
 		{
 			printf("%s File %s invalid, breaking here.\nMake sure all your DDS files are valid first.\n", PRINTTYPE_ERROR, InTexStruct[(*InTPKInternal).TextureCategoryHashCount].FilesystemPath);
@@ -113,36 +123,36 @@ bool SettingsReader(const char* InFileName, TPKToolInternalStruct *InTPKInternal
 		}
 
 		fscanf(fin, "Name = %s\n", &InTexStruct[(*InTPKInternal).TextureCategoryHashCount].TexName);
-		fscanf(fin, "ClassNameHash = %X\n", &InTexStruct[(*InTPKInternal).TextureCategoryHashCount].Child4.ClassNameHash);
-		fscanf(fin, "ShiftWidth = %hhX\n", &InTexStruct[(*InTPKInternal).TextureCategoryHashCount].Child4.ShiftWidth);
-		fscanf(fin, "ShiftHeight = %hhX\n", &InTexStruct[(*InTPKInternal).TextureCategoryHashCount].Child4.ShiftHeight);
-		fscanf(fin, "ImageCompressionType = %hhX\n", &InTexStruct[(*InTPKInternal).TextureCategoryHashCount].Child4.ImageCompressionType);
-		fscanf(fin, "PaletteCompressionType = %hhX\n", &InTexStruct[(*InTPKInternal).TextureCategoryHashCount].Child4.PaletteCompressionType);
-		fscanf(fin, "NumPaletteEntries = %hX\n", &InTexStruct[(*InTPKInternal).TextureCategoryHashCount].Child4.NumPaletteEntries);
-		fscanf(fin, "TilableUV = %hhX\n", &InTexStruct[(*InTPKInternal).TextureCategoryHashCount].Child4.TilableUV);
-		fscanf(fin, "BiasLevel = %hhX\n", &InTexStruct[(*InTPKInternal).TextureCategoryHashCount].Child4.BiasLevel);
-		fscanf(fin, "RenderingOrder = %hhX\n", &InTexStruct[(*InTPKInternal).TextureCategoryHashCount].Child4.RenderingOrder);
-		fscanf(fin, "ScrollType = %hhX\n", &InTexStruct[(*InTPKInternal).TextureCategoryHashCount].Child4.ScrollType);
-		fscanf(fin, "UsedFlag = %hhX\n", &InTexStruct[(*InTPKInternal).TextureCategoryHashCount].Child4.UsedFlag);
-		fscanf(fin, "ApplyAlphaSorting = %hhX\n", &InTexStruct[(*InTPKInternal).TextureCategoryHashCount].Child4.ApplyAlphaSorting);
-		fscanf(fin, "AlphaUsageType = %hhX\n", &InTexStruct[(*InTPKInternal).TextureCategoryHashCount].Child4.AlphaUsageType);
-		fscanf(fin, "AlphaBlendType = %hhX\n", &InTexStruct[(*InTPKInternal).TextureCategoryHashCount].Child4.AlphaBlendType);
-		fscanf(fin, "Flags = %hhX\n", &InTexStruct[(*InTPKInternal).TextureCategoryHashCount].Child4.Flags);
-		fscanf(fin, "MipmapBiasType = %hhX\n", &InTexStruct[(*InTPKInternal).TextureCategoryHashCount].Child4.MipmapBiasType);
-		fscanf(fin, "ScrollTimeStep = %hX\n", &InTexStruct[(*InTPKInternal).TextureCategoryHashCount].Child4.ScrollTimeStep);
-		fscanf(fin, "ScrollSpeedS = %hX\n", &InTexStruct[(*InTPKInternal).TextureCategoryHashCount].Child4.ScrollSpeedS);
-		fscanf(fin, "ScrollSpeedT = %hX\n", &InTexStruct[(*InTPKInternal).TextureCategoryHashCount].Child4.ScrollSpeedT);
-		fscanf(fin, "OffsetS = %hX\n", &InTexStruct[(*InTPKInternal).TextureCategoryHashCount].Child4.OffsetS);
-		fscanf(fin, "OffsetT = %hX\n", &InTexStruct[(*InTPKInternal).TextureCategoryHashCount].Child4.OffsetT);
-		fscanf(fin, "ScaleS = %hX\n", &InTexStruct[(*InTPKInternal).TextureCategoryHashCount].Child4.ScaleS);
-		fscanf(fin, "ScaleT = %hX\n", &InTexStruct[(*InTPKInternal).TextureCategoryHashCount].Child4.ScaleT);
-		fscanf(fin, "Unknown1 = %hhX\n", &InTexStruct[(*InTPKInternal).TextureCategoryHashCount].Child4.Padding);
+		fscanf(fin, "ClassNameHash = 0x%X\n", &InTexStruct[(*InTPKInternal).TextureCategoryHashCount].Child4.ClassNameHash);
+		//fscanf(fin, "ShiftWidth = %hhd\n", &InTexStruct[(*InTPKInternal).TextureCategoryHashCount].Child4.ShiftWidth);
+		//fscanf(fin, "ShiftHeight = %hhd\n", &InTexStruct[(*InTPKInternal).TextureCategoryHashCount].Child4.ShiftHeight);
+		fscanf(fin, "ImageCompressionType = 0x%hhX\n", &InTexStruct[(*InTPKInternal).TextureCategoryHashCount].Child4.ImageCompressionType);
+		fscanf(fin, "PaletteCompressionType = 0x%hhX\n", &InTexStruct[(*InTPKInternal).TextureCategoryHashCount].Child4.PaletteCompressionType);
+		fscanf(fin, "NumPaletteEntries = %hd\n", &InTexStruct[(*InTPKInternal).TextureCategoryHashCount].Child4.NumPaletteEntries);
+		fscanf(fin, "TilableUV = %hhd\n", &InTexStruct[(*InTPKInternal).TextureCategoryHashCount].Child4.TilableUV);
+		fscanf(fin, "BiasLevel = %hhd\n", &InTexStruct[(*InTPKInternal).TextureCategoryHashCount].Child4.BiasLevel);
+		fscanf(fin, "RenderingOrder = %hhd\n", &InTexStruct[(*InTPKInternal).TextureCategoryHashCount].Child4.RenderingOrder);
+		fscanf(fin, "ScrollType = %hhd\n", &InTexStruct[(*InTPKInternal).TextureCategoryHashCount].Child4.ScrollType);
+		fscanf(fin, "UsedFlag = %hhd\n", &InTexStruct[(*InTPKInternal).TextureCategoryHashCount].Child4.UsedFlag);
+		fscanf(fin, "ApplyAlphaSorting = %hhd\n", &InTexStruct[(*InTPKInternal).TextureCategoryHashCount].Child4.ApplyAlphaSorting);
+		fscanf(fin, "AlphaUsageType = %hhd\n", &InTexStruct[(*InTPKInternal).TextureCategoryHashCount].Child4.AlphaUsageType);
+		fscanf(fin, "AlphaBlendType = %hhd\n", &InTexStruct[(*InTPKInternal).TextureCategoryHashCount].Child4.AlphaBlendType);
+		fscanf(fin, "Flags = 0x%hhX\n", &InTexStruct[(*InTPKInternal).TextureCategoryHashCount].Child4.Flags);
+		//fscanf(fin, "MipmapBiasType = %hhd\n", &InTexStruct[(*InTPKInternal).TextureCategoryHashCount].Child4.MipmapBiasType);
+		fscanf(fin, "ScrollTimeStep = %hd\n", &InTexStruct[(*InTPKInternal).TextureCategoryHashCount].Child4.ScrollTimeStep);
+		fscanf(fin, "ScrollSpeedS = %hd\n", &InTexStruct[(*InTPKInternal).TextureCategoryHashCount].Child4.ScrollSpeedS);
+		fscanf(fin, "ScrollSpeedT = %hd\n", &InTexStruct[(*InTPKInternal).TextureCategoryHashCount].Child4.ScrollSpeedT);
+		fscanf(fin, "OffsetS = %hd\n", &InTexStruct[(*InTPKInternal).TextureCategoryHashCount].Child4.OffsetS);
+		fscanf(fin, "OffsetT = %hd\n", &InTexStruct[(*InTPKInternal).TextureCategoryHashCount].Child4.OffsetT);
+		fscanf(fin, "ScaleS = %hd\n", &InTexStruct[(*InTPKInternal).TextureCategoryHashCount].Child4.ScaleS);
+		fscanf(fin, "ScaleT = %hd\n", &InTexStruct[(*InTPKInternal).TextureCategoryHashCount].Child4.ScaleT);
+		//fscanf(fin, "Unknown1 = %hhX\n", &InTexStruct[(*InTPKInternal).TextureCategoryHashCount].Child4.Padding);
 
 		if (WritingMode == TPKTOOL_WRITINGMODE_V2)
 		{
-			fscanf(fin, "PixelFormatUnk1 = %X\n", &InGamePixelFormat[(*InTPKInternal).TextureCategoryHashCount].Unknown1);
-			fscanf(fin, "PixelFormatUnk2 = %X\n", &InGamePixelFormat[(*InTPKInternal).TextureCategoryHashCount].Unknown2);
-			fscanf(fin, "PixelFormatUnk3 = %X\n", &InGamePixelFormat[(*InTPKInternal).TextureCategoryHashCount].Unknown3);
+			fscanf(fin, "PixelFormatUnk1 = 0x%X\n", &InGamePixelFormat[(*InTPKInternal).TextureCategoryHashCount].Unknown1);
+			fscanf(fin, "PixelFormatUnk2 = 0x%X\n", &InGamePixelFormat[(*InTPKInternal).TextureCategoryHashCount].Unknown2);
+			fscanf(fin, "PixelFormatUnk3 = 0x%X\n", &InGamePixelFormat[(*InTPKInternal).TextureCategoryHashCount].Unknown3);
 
 			if (!InGamePixelFormat[(*InTPKInternal).TextureCategoryHashCount].Unknown2)
 			{
@@ -154,9 +164,9 @@ bool SettingsReader(const char* InFileName, TPKToolInternalStruct *InTPKInternal
 		}
 		else
 		{
-			fscanf(fin, "PixelFormatUnk1 = %X\n", &ReadNumber);
-			fscanf(fin, "PixelFormatUnk2 = %X\n", &ReadNumber);
-			fscanf(fin, "PixelFormatUnk3 = %X\n", &ReadNumber);
+			fscanf(fin, "PixelFormatUnk1 = 0x%X\n", &ReadNumber);
+			fscanf(fin, "PixelFormatUnk2 = 0x%X\n", &ReadNumber);
+			fscanf(fin, "PixelFormatUnk3 = 0x%X\n", &ReadNumber);
 		}
 		// REPURPOSING CHILD4's VALUES! IF CARBON IS USED, THESE ARE ZEROED OUT! HACK!
 		//if (WritingMode == TPKTOOL_WRITINGMODE_V2)
@@ -188,7 +198,7 @@ bool SettingsReader(const char* InFileName, TPKToolInternalStruct *InTPKInternal
 	{
 		ReadDDSData(InTexStruct, InGamePixelFormat, &(*InTPKInternal).RelativeDDSDataOffset, i);
 
-		if (InGamePixelFormat[i].FourCC == 0x15)
+		if (InGamePixelFormat[i].FourCC == FOURCC_ARGB)
 			InTexStruct[i].Child4.BaseImageSize = ((InTexStruct[i].Child4.Width) * (InTexStruct[i].Child4.Height)) * TEXTURENUMCHANNELS;
 		else
 			InTexStruct[i].Child4.BaseImageSize = flp2(InTexStruct[i].Child4.ImageSize);
@@ -216,11 +226,7 @@ int main(int argc, char *argv[])
 	TPKToolInternalStruct *TPKToolStuff = (TPKToolInternalStruct*)calloc(1, sizeof(TPKToolInternalStruct));
 	struct stat st = { 0 }; // filestat for folder existence
 
-#ifdef TPKTOOL_WIPVER
-	printf("Xanvier's NFS TPK Tool version %d !WIP!\nIf you have this version, you're naughty.\n\n", TPKTOOL_VERSION);
-#else
-	printf("Xanvier's NFS TPK Tool version %d\n\n", TPKTOOL_VERSION);
-#endif
+	printf("Xanvier's NFS TPK Tool\n\n");
 
 	if (argc <= 1)
 	{
@@ -255,7 +261,7 @@ int main(int argc, char *argv[])
 		}
 		else if (strncmp(argv[1] + 2, "360-2", 5) == 0)
 		{
-			printf("%s Going into 360 TPKv2 mode!\n", PRINTTYPE_INFO);
+			printf("%s Going into 360 TPKv4 mode!\n", PRINTTYPE_INFO);
 			WritingMode = TPKTOOL_WRITINGMODE_PLAT_V2_360;
 		}
 		else if (strncmp(argv[1] + 2, "PS2", 3) == 0)
@@ -267,10 +273,15 @@ int main(int argc, char *argv[])
 		}
 		else if (strncmp(argv[1] + 2, "PS2-2", 5) == 0)
 		{
-			printf("%s Going into PS2 TPKv2 mode!\n", PRINTTYPE_INFO);
+			printf("%s Going into PS2 TPKv4 mode!\n", PRINTTYPE_INFO);
 			WritingMode = TPKTOOL_WRITINGMODE_PLAT_V2_PS2;
 			printf("%s Unimplemented... Code coming soon.\n", PRINTTYPE_INFO);
 			return 0;
+		}
+		else if (strncmp(argv[1] + 2, "XBX", 3) == 0)
+		{
+			printf("%s Going into Xbox mode!\n", PRINTTYPE_INFO);
+			WritingMode = TPKTOOL_WRITINGMODE_PLAT_XBOX;
 		}
 	}
 
@@ -305,7 +316,7 @@ int main(int argc, char *argv[])
 
 	else if (strncmp(argv[1], "-360-2", 6) == 0)
 	{
-		printf("%s Going into 360 TPKv2 mode!\n", PRINTTYPE_INFO);
+		printf("%s Going into 360 TPKv4 mode!\n", PRINTTYPE_INFO);
 		ReadingMode = TPKTOOL_READINGMODE_PLAT_V2_360;
 	}
 
@@ -321,12 +332,22 @@ int main(int argc, char *argv[])
 
 	else if (strncmp(argv[1], "-PS2-2", 6) == 0)
 	{
-		printf("%s Going into PS2 TPKv2 mode!\n", PRINTTYPE_INFO);
+		printf("%s Going into PS2 TPKv4 mode!\n", PRINTTYPE_INFO);
 		ReadingMode = TPKTOOL_READINGMODE_PLAT_V2_PS2;
 
 		//unimplemented... temp code.
 		printf("%s Unimplemented... Code coming soon. Use PC modes to get some data out for now.\n", PRINTTYPE_INFO);
 		return 0;
+	}
+
+	else if (strncmp(argv[1], "-XBX", 6) == 0)
+	{
+		printf("%s Going into Xbox mode!\n", PRINTTYPE_INFO);
+		ReadingMode = TPKTOOL_READINGMODE_PLAT_XBOX;
+
+		//unimplemented... temp code.
+		//printf("%s Unimplemented... Code coming soon. Use PC modes to get some data out for now.\n", PRINTTYPE_INFO);
+		//return 0;
 	}
 
 	if (ReadingMode)
@@ -359,7 +380,7 @@ int main(int argc, char *argv[])
 		{
 			// not cross-platform compatible, i know...
 			printf("Making directory %s\n", (*TPKToolStuff).OutputPath);
-			sprintf((*TPKToolStuff).TotalFilePath, "md %s\0", (*TPKToolStuff).OutputPath);
+			sprintf((*TPKToolStuff).TotalFilePath, "md \"%s\"\0", (*TPKToolStuff).OutputPath);
 			system((*TPKToolStuff).TotalFilePath);
 			//_mkdir(InputFilePath);
 		}
@@ -382,7 +403,7 @@ int main(int argc, char *argv[])
 		{
 			// not cross-platform compatible, i know...
 			printf("Making directory %s\n", (*TPKToolStuff).OutputPath);
-			sprintf((*TPKToolStuff).TotalFilePath, "md %s\0", (*TPKToolStuff).OutputPath);
+			sprintf((*TPKToolStuff).TotalFilePath, "md \"%s\"\0", (*TPKToolStuff).OutputPath);
 			system((*TPKToolStuff).TotalFilePath);
 		}
 
@@ -390,11 +411,11 @@ int main(int argc, char *argv[])
 		MasterChunkReader(argv[1], (*TPKToolStuff).OutputPath, TPKToolStuff, texture, GamePixelFormat, TPKAnim, &TPKLink);
 	}
 	// phasing out stat file in favor of more detailed ini
-	strcpy((*TPKToolStuff).TotalFilePath, (*TPKToolStuff).OutputPath);
-	strcat((*TPKToolStuff).TotalFilePath, "\\");
-	strcat((*TPKToolStuff).TotalFilePath, (*TPKToolStuff).StatFileName);
-	printf("%s Outputting statistics to: %s\n", PRINTTYPE_INFO, (*TPKToolStuff).TotalFilePath);
-	OutputInfoToFile((*TPKToolStuff).TotalFilePath, texture, TPKToolStuff, GamePixelFormat, TPKAnim);
+	//strcpy((*TPKToolStuff).TotalFilePath, (*TPKToolStuff).OutputPath);
+	//strcat((*TPKToolStuff).TotalFilePath, "\\");
+	//strcat((*TPKToolStuff).TotalFilePath, (*TPKToolStuff).StatFileName);
+	//printf("%s Outputting statistics to: %s\n", PRINTTYPE_INFO, (*TPKToolStuff).TotalFilePath);
+	//OutputInfoToFile((*TPKToolStuff).TotalFilePath, texture, TPKToolStuff, GamePixelFormat, TPKAnim);
 
 	strcpy((*TPKToolStuff).TotalFilePath, (*TPKToolStuff).OutputPath);
 	strcat((*TPKToolStuff).TotalFilePath, "\\");

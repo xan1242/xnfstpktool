@@ -17,9 +17,6 @@
 #include "xgraphics.h"
 #endif
 
-#define TPKTOOL_VERSION 2
-#define TPKTOOL_WIPVER
-
 #define DDS_MAGIC 0x20534444
 
 #define TPKCAPSULE_CHUNKID 0xB3300000
@@ -55,11 +52,11 @@
 #define TPKTOOL_READINGMODE_V2 2
 #define TPKTOOL_WRITINGMODE_V2 2
 
-// min version is TPKv3 for PS3 anyway, so we don't care about TPKv2 for that platform (unless someone magically ports older NFS games to PS3)
+// min version is TPKv5+ for PS3 anyway, so we don't care about TPKv4 for that platform (unless someone magically ports older NFS games to PS3)
 #define TPKTOOL_READINGMODE_PLAT_PS3 3 
 #define TPKTOOL_WRITINGMODE_PLAT_PS3 3
 
-// 360 supports TPK minver 5 (TPKv2 as I called it here, version detection will be added at a later point)
+// 360 supports TPK minver 5 (TPKv4 as I called it here, version detection will be added at a later point)
 #define TPKTOOL_READINGMODE_PLAT_V2_360 4
 #define TPKTOOL_WRITINGMODE_PLAT_V2_360 4
 #define TPKTOOL_READINGMODE_PLAT_360 5
@@ -85,19 +82,21 @@
 #define TPKTOOL_HELPMESSAGE "\
 Usage: [-w/-h/-?] InFile [OutFile]\n\n\
 Default: InFile = TPK file | OutFile = Output folder path\n\
--2     : TPK v2 mode (UG2 & MW), InFile = TPK file | OutFile = Output folder path\n\
--PS2   : PS2 mode (TPK v3), InFile = TPK file | OutFile = Output folder path\n\
--PS2-2 : PS2 mode (TPK v2), InFile = TPK file | OutFile = Output folder path\n\
--PS3   : PS3 mode (TPK v3 only), InFile = TPK file | OutFile = Output folder path\n\
--360   : 360 mode (TPK v3), InFile = TPK file | OutFile = Output folder path\n\
--360-2 : 360 mode (TPK v2), InFile = TPK file | OutFile = Output folder path\n\
--w     : Writing mode (TPK v3), InFile = TPK settings ini file | OutFile = Output file name\n\
--w2    : Writing mode (TPK v2), InFile = TPK settings ini file | OutFile = Output file name\n\
--wPS2  : Writing mode (PS2 TPK v3), InFile = TPK settings ini file | OutFile = Output file name\n\
--wPS2-2: Writing mode (PS2 TPK v2), InFile = TPK settings ini file | OutFile = Output file name\n\
--wPS3  : Writing mode (PS3 TPK v3), InFile = TPK settings ini file | OutFile = Output file name\n\
--w360  : Writing mode (360 TPK v3), InFile = TPK settings ini file | OutFile = Output file name\n\
--w360-2: Writing mode (360 TPK v2), InFile = TPK settings ini file | OutFile = Output file name\n\
+-2     : TPK v4- mode (UG2 & MW), InFile = TPK file | OutFile = Output folder path\n\
+-PS2   : PS2 mode (TPK v5+), InFile = TPK file | OutFile = Output folder path\n\
+-PS2-2 : PS2 mode (TPK v4-), InFile = TPK file | OutFile = Output folder path\n\
+-PS3   : PS3 mode (TPK v5+ only), InFile = TPK file | OutFile = Output folder path\n\
+-360   : 360 mode (TPK v5+), InFile = TPK file | OutFile = Output folder path\n\
+-360-2 : 360 mode (TPK v4-), InFile = TPK file | OutFile = Output folder path\n\
+-XBX   : Xbox mode, InFile = TPK file | OutFile = Output folder path\n\
+-w     : Writing mode (TPK v5+), InFile = TPK settings ini file | OutFile = Output file name\n\
+-w2    : Writing mode (TPK v4-), InFile = TPK settings ini file | OutFile = Output file name\n\
+-wPS2  : Writing mode (PS2 TPK v5+), InFile = TPK settings ini file | OutFile = Output file name\n\
+-wPS2-2: Writing mode (PS2 TPK v4-), InFile = TPK settings ini file | OutFile = Output file name\n\
+-wPS3  : Writing mode (PS3 TPK v5+), InFile = TPK settings ini file | OutFile = Output file name\n\
+-w360  : Writing mode (360 TPK v5+), InFile = TPK settings ini file | OutFile = Output file name\n\
+-w360-2: Writing mode (360 TPK v4-), InFile = TPK settings ini file | OutFile = Output file name\n\
+-wXBX  : Writing mode (Xbox TPK v5+), InFile = TPK settings ini file | OutFile = Output file name\n\
 -h/-?  : Show this help message\n\
 [OutFile] optional, if not specified, the folder will be created with the filename's base\n\
 \nDDS files are extracted to their respective TPK hash directory.\n\
@@ -110,6 +109,12 @@ While this tool can extract data for other platforms, it only fully works with P
 #define PRINTTYPE_WARNING "WARNING:"
 
 int WritingMode = 0;
+
+#define FOURCC_DXT1 0x31545844
+#define FOURCC_DXT3 0x33545844
+#define FOURCC_DXT5 0x35545844
+#define FOURCC_ATI2 0x32495441
+#define FOURCC_ARGB 0x15
 
 struct GamePixelFormatStruct // temporary storage for unknown stuff
 {
@@ -134,17 +139,41 @@ struct TPKChild5Struct_PS3
 };
 
 // also used on Carbon it seems...
+//struct TPKChild5Struct_v2_360
+//{
+//	unsigned char Unknown1[8];
+//	unsigned int PixelFormatVal1; // 1
+//	unsigned int SomeVal1; // 6 = DXT5
+//	unsigned int SomeVal2; // 1 = DXT5, ARGB, DXT3, 7 = ARGB or some other RGB?
+//	unsigned char SomeVal3;
+//	bool bSwizzled;
+//	unsigned short SomeVal4;
+//	//unsigned int SomeVal3; // 0x1A200154 = DXT5, 0x18280186 = RGBA, 0x1A200152 = DXT1, 0x1A200153 = DXT3, maybe not 32 bits, simplified for the sake of testing
+//	unsigned char Unknown2[8];
+//};
+
+// new version...
 struct TPKChild5Struct_v2_360
 {
 	unsigned char Unknown1[8];
-	unsigned int PixelFormatVal1; // 1
-	unsigned int SomeVal1; // 6 = DXT5
-	unsigned int SomeVal2; // 1 = DXT5, ARGB, DXT3, 7 = ARGB or some other RGB?
-	unsigned char SomeVal3;
-	bool bSwizzled;
-	unsigned short SomeVal4;
+	unsigned int PixelFormatVal1;
+	unsigned int SomeVal1;
+	unsigned int SomeVal2;
+	unsigned int D3DFormat; // D3DFMT in big endian...
+	//bool bSwizzled;
+	//unsigned short SomeVal4;
 	//unsigned int SomeVal3; // 0x1A200154 = DXT5, 0x18280186 = RGBA, 0x1A200152 = DXT1, 0x1A200153 = DXT3, maybe not 32 bits, simplified for the sake of testing
 	unsigned char Unknown2[8];
+};
+
+struct TPKChild5Struct_Xbox // TODO - decipher pixel format stuff
+{
+	//unsigned char Unknown1[0x3C];
+	unsigned int unk1; // usually 1
+	unsigned int unk2; // usually 0x302
+	unsigned int unk3; // this is different between 2 same DXT3 files... 0x303 on one DXT3 file, 1 on another, then on a DXT1 file it's 0x303 again... I have no idea.
+	unsigned int PixelFormat; // 0xE = DXT3, 0xC = DXT1, 0xB = P8, 0x6 = ARGB, DXT5 unknown
+	unsigned char unk4[0x2C]; // unknown space
 };
 
 struct GamePixelFormatStruct_v2 // temporary storage for unknown stuff
@@ -265,7 +294,7 @@ struct TPK_v4_Child4Struct // World
 	unsigned int Unknown12;
 };
 
-struct TPKChild4Struct_TPKv2
+struct TPKChild4Struct_TPKv4
 {
 	unsigned int Unknown13[3];
 	char TexName[0x18];
@@ -327,8 +356,8 @@ struct TextureInfo
 	char AlphaUsageType;
 	char AlphaBlendType;
 	char Flags;
-	char MipmapBiasType;
-	char Padding;
+	//char MipmapBiasType;
+	//char Padding;
 	short ScrollTimeStep;
 	short ScrollSpeedS;
 	short ScrollSpeedT;
@@ -336,9 +365,10 @@ struct TextureInfo
 	short OffsetT;
 	short ScaleS;
 	short ScaleT;
-	class TexturePack* pTexturePack;
-	void* ImageData;
-	void* PaletteData;
+	uint8_t other[0xE];
+	//class TexturePack* pTexturePack;
+	//void* ImageData;
+	//void* PaletteData;
 	//char DebugNameSize;
 	//char DebugName[35];
 };
@@ -488,6 +518,7 @@ bool bFileExists(const char* filename)
 		fclose(fin);
 		return true;
 	}
+	//printf("ERROR: File %s doesn't exist!\n", filename);
 	//perror("ERROR");
 	return false;
 }
@@ -548,24 +579,24 @@ int SpitSettingsFile(const char* OutFileName, TexStruct *InTexStruct, TPKToolInt
 	fprintf(fout, "Name = %s\n", (*InTPKToolInternal).TPKTypeName);
 	fprintf(fout, "Version = %d\n", (*InTPKToolInternal).TPKTypeValue);
 	fprintf(fout, "Filename = %s\n", (*InTPKToolInternal).TPKPathName);
-	fprintf(fout, "FilenameHash = %X\n", (*InTPKToolInternal).HashArray[0]);
+	fprintf(fout, "FilenameHash = 0x%X\n", (*InTPKToolInternal).HashArray[0]);
 	fprintf(fout, "Animations = %d\n", (*InTPKToolInternal).AnimCounter);
 
 	for (unsigned int i = 0; i < (*InTPKToolInternal).AnimCounter; i++)
 	{
 		fprintf(fout, "\n[Anim%d]\n", i);
 		fprintf(fout, "Name = %s\n", InTPKAnim[i].Name);
-		fprintf(fout, "Hash = %X\n", InTPKAnim[i].Hash);
+		fprintf(fout, "Hash = 0x%X\n", InTPKAnim[i].Hash);
 		fprintf(fout, "Frames = %d\n", InTPKAnim[i].Frames);
 		fprintf(fout, "Framerate = %d\n", InTPKAnim[i].Framerate);
-		fprintf(fout, "Unknown1 = %X\n", InTPKAnim[i].Unknown1);
-		fprintf(fout, "Unknown2 = %X\n", InTPKAnim[i].Unknown2);
-		fprintf(fout, "Unknown3 = %X\n", InTPKAnim[i].Unknown3);
-		fprintf(fout, "Unknown4 = %X\n", InTPKAnim[i].Unknown4);
-		fprintf(fout, "Unknown5 = %X\n", InTPKAnim[i].Unknown5);
-		fprintf(fout, "Unknown6 = %X\n", InTPKAnim[i].Unknown6);
+		fprintf(fout, "Unknown1 = 0x%X\n", InTPKAnim[i].Unknown1);
+		fprintf(fout, "Unknown2 = 0x%X\n", InTPKAnim[i].Unknown2);
+		fprintf(fout, "Unknown3 = 0x%X\n", InTPKAnim[i].Unknown3);
+		fprintf(fout, "Unknown4 = 0x%X\n", InTPKAnim[i].Unknown4);
+		fprintf(fout, "Unknown5 = 0x%X\n", InTPKAnim[i].Unknown5);
+		fprintf(fout, "Unknown6 = 0x%X\n", InTPKAnim[i].Unknown6);
 		for (unsigned int j = 0; j < InTPKAnim[i].Frames; j++)
-			fprintf(fout, "Frame%d = %X\n", j, (*InTPKToolInternal).AnimFrameHashArray[i][j]);
+			fprintf(fout, "Frame%d = 0x%X\n", j, (*InTPKToolInternal).AnimFrameHashArray[i][j]);
 	}
 
 	for (unsigned int i = 0; i < (*InTPKToolInternal).TextureDataCount; i++)
@@ -573,35 +604,35 @@ int SpitSettingsFile(const char* OutFileName, TexStruct *InTexStruct, TPKToolInt
 		fprintf(fout, "\n[%X]\n", InTexStruct[i].Child4.NameHash);
 		fprintf(fout, "File = %s\n", InTexStruct[i].FilesystemPath);
 		fprintf(fout, "Name = %s\n", InTexStruct[i].TexName);
-		fprintf(fout, "ClassNameHash = %X\n", InTexStruct[i].Child4.ClassNameHash);
+		fprintf(fout, "ClassNameHash = 0x%X\n", InTexStruct[i].Child4.ClassNameHash);
 
 		//fprintf(fout, "TextureFlags = %X\n", InTexStruct[i].Child4.TexFlags);
-		fprintf(fout, "ShiftWidth = %X\n", InTexStruct[i].Child4.ShiftWidth);
-		fprintf(fout, "ShiftHeight = %X\n", InTexStruct[i].Child4.ShiftHeight);
-		fprintf(fout, "ImageCompressionType = %X\n", InTexStruct[i].Child4.ImageCompressionType);
-		fprintf(fout, "PaletteCompressionType = %X\n", InTexStruct[i].Child4.PaletteCompressionType);
-		fprintf(fout, "NumPaletteEntries = %hX\n", InTexStruct[i].Child4.NumPaletteEntries);
-		fprintf(fout, "TilableUV = %X\n", InTexStruct[i].Child4.TilableUV);
-		fprintf(fout, "BiasLevel = %X\n", InTexStruct[i].Child4.BiasLevel);
-		fprintf(fout, "RenderingOrder = %X\n", InTexStruct[i].Child4.RenderingOrder);
-		fprintf(fout, "ScrollType = %X\n", InTexStruct[i].Child4.ScrollType);
-		fprintf(fout, "UsedFlag = %X\n", InTexStruct[i].Child4.UsedFlag);
-		fprintf(fout, "ApplyAlphaSorting = %X\n", InTexStruct[i].Child4.ApplyAlphaSorting);
-		fprintf(fout, "AlphaUsageType = %X\n", InTexStruct[i].Child4.AlphaUsageType);
-		fprintf(fout, "AlphaBlendType = %X\n", InTexStruct[i].Child4.AlphaBlendType);
-		fprintf(fout, "Flags = %X\n", InTexStruct[i].Child4.Flags);
-		fprintf(fout, "MipmapBiasType = %X\n", InTexStruct[i].Child4.MipmapBiasType);
-		fprintf(fout, "ScrollTimeStep = %X\n", InTexStruct[i].Child4.ScrollTimeStep);
-		fprintf(fout, "ScrollSpeedS = %X\n", InTexStruct[i].Child4.ScrollSpeedS);
-		fprintf(fout, "ScrollSpeedT = %X\n", InTexStruct[i].Child4.ScrollSpeedT);
-		fprintf(fout, "OffsetS = %X\n", InTexStruct[i].Child4.OffsetS);
-		fprintf(fout, "OffsetT = %X\n", InTexStruct[i].Child4.OffsetT);
-		fprintf(fout, "ScaleS = %X\n", InTexStruct[i].Child4.ScaleS);
-		fprintf(fout, "ScaleT = %X\n", InTexStruct[i].Child4.ScaleT);
-		fprintf(fout, "Unknown1 = %X\n", InTexStruct[i].Child4.Padding);
-		fprintf(fout, "PixelFormatUnk1 = %X\n", InGamePixelFormat[i].Unknown1);
-		fprintf(fout, "PixelFormatUnk2 = %X\n", InGamePixelFormat[i].Unknown2);
-		fprintf(fout, "PixelFormatUnk3 = %X\n", InGamePixelFormat[i].Unknown3);
+		//fprintf(fout, "ShiftWidth = %d\n", InTexStruct[i].Child4.ShiftWidth);
+		//fprintf(fout, "ShiftHeight = %d\n", InTexStruct[i].Child4.ShiftHeight);
+		fprintf(fout, "ImageCompressionType = 0x%X\n", InTexStruct[i].Child4.ImageCompressionType);
+		fprintf(fout, "PaletteCompressionType = 0x%X\n", InTexStruct[i].Child4.PaletteCompressionType);
+		fprintf(fout, "NumPaletteEntries = %hd\n", InTexStruct[i].Child4.NumPaletteEntries);
+		fprintf(fout, "TilableUV = %d\n", InTexStruct[i].Child4.TilableUV);
+		fprintf(fout, "BiasLevel = %d\n", InTexStruct[i].Child4.BiasLevel);
+		fprintf(fout, "RenderingOrder = %d\n", InTexStruct[i].Child4.RenderingOrder);
+		fprintf(fout, "ScrollType = %d\n", InTexStruct[i].Child4.ScrollType);
+		fprintf(fout, "UsedFlag = %d\n", InTexStruct[i].Child4.UsedFlag);
+		fprintf(fout, "ApplyAlphaSorting = %d\n", InTexStruct[i].Child4.ApplyAlphaSorting);
+		fprintf(fout, "AlphaUsageType = %d\n", InTexStruct[i].Child4.AlphaUsageType);
+		fprintf(fout, "AlphaBlendType = %d\n", InTexStruct[i].Child4.AlphaBlendType);
+		fprintf(fout, "Flags = 0x%X\n", InTexStruct[i].Child4.Flags);
+		//fprintf(fout, "MipmapBiasType = %d\n", InTexStruct[i].Child4.MipmapBiasType);
+		fprintf(fout, "ScrollTimeStep = %hd\n", InTexStruct[i].Child4.ScrollTimeStep);
+		fprintf(fout, "ScrollSpeedS = %d\n", InTexStruct[i].Child4.ScrollSpeedS);
+		fprintf(fout, "ScrollSpeedT = %d\n", InTexStruct[i].Child4.ScrollSpeedT);
+		fprintf(fout, "OffsetS = %d\n", InTexStruct[i].Child4.OffsetS);
+		fprintf(fout, "OffsetT = %d\n", InTexStruct[i].Child4.OffsetT);
+		fprintf(fout, "ScaleS = %d\n", InTexStruct[i].Child4.ScaleS);
+		fprintf(fout, "ScaleT = %d\n", InTexStruct[i].Child4.ScaleT);
+		//fprintf(fout, "Unknown1 = 0x%X\n", InTexStruct[i].Child4.Padding);
+		fprintf(fout, "PixelFormatUnk1 = 0x%X\n", InGamePixelFormat[i].Unknown1);
+		fprintf(fout, "PixelFormatUnk2 = 0x%X\n", InGamePixelFormat[i].Unknown2);
+		fprintf(fout, "PixelFormatUnk3 = 0x%X\n", InGamePixelFormat[i].Unknown3);
 
 		//fprintf(fout, "\n[%X]\n", InTexStruct[i].Child4.Hash);
 		//fprintf(fout, "File = %s\n", InTexStruct[i].FilesystemPath);
@@ -654,8 +685,8 @@ int OutputInfoToFile(const char* OutFileName, TexStruct *InTexStruct, TPKToolInt
 		fprintf(fout, "Base image size: %#08X\n", InTexStruct[i].Child4.BaseImageSize);
 		fprintf(fout, "Width: %d\n", InTexStruct[i].Child4.Width);
 		fprintf(fout, "Height: %d\n", InTexStruct[i].Child4.Height);
-		fprintf(fout, "Shift width: %d\n", InTexStruct[i].Child4.ShiftWidth);
-		fprintf(fout, "Shift height: %d\n", InTexStruct[i].Child4.ShiftHeight);
+		//fprintf(fout, "Shift width: %d\n", InTexStruct[i].Child4.ShiftWidth);
+		//fprintf(fout, "Shift height: %d\n", InTexStruct[i].Child4.ShiftHeight);
 		fprintf(fout, "Image compression type: %#08X\n", InTexStruct[i].Child4.ImageCompressionType);
 		fprintf(fout, "Palette compression type: %d\n", InTexStruct[i].Child4.PaletteCompressionType);
 		fprintf(fout, "Pallete entries: %d\n", InTexStruct[i].Child4.NumPaletteEntries);
@@ -670,7 +701,7 @@ int OutputInfoToFile(const char* OutFileName, TexStruct *InTexStruct, TPKToolInt
 		fprintf(fout, "Alpha usage type: %d\n", InTexStruct[i].Child4.AlphaUsageType);
 		fprintf(fout, "Alpha blend type: %d\n", InTexStruct[i].Child4.AlphaBlendType);
 		fprintf(fout, "Flags: %d\n", InTexStruct[i].Child4.Flags);
-		fprintf(fout, "Mipmap bias type: %d\n", InTexStruct[i].Child4.MipmapBiasType);
+		//fprintf(fout, "Mipmap bias type: %d\n", InTexStruct[i].Child4.MipmapBiasType);
 		fprintf(fout, "Scroll time step: %d\n", InTexStruct[i].Child4.ScrollTimeStep);
 		fprintf(fout, "Scroll speed S: %d\n", InTexStruct[i].Child4.ScrollSpeedS);
 		fprintf(fout, "Scroll speed T: %d\n", InTexStruct[i].Child4.ScrollSpeedT);
@@ -833,6 +864,66 @@ int ByteSwapBuffer_Long(void* buffer, unsigned int size)
 	return 0;
 }
 
+// searches for DDS data in memory region, returns the found data pointer
+void* DDSDataSearch(void* StartAddress, unsigned int bytesPerBlock, unsigned int size)
+{
+	unsigned int FoundAddress = (unsigned int)StartAddress;
+	bool bAllWereZero = true;
+
+	while (FoundAddress < ((unsigned int)StartAddress + size))
+	{
+		// HACK!! since all our reads are aligned we don't need to worry about alignment...
+		for (unsigned int i = 0; i < bytesPerBlock; i++)
+		{
+			if (((unsigned char*)FoundAddress)[i])
+			{
+				bAllWereZero = false;
+				break;
+			}
+		}
+		if (!bAllWereZero)
+			break;
+
+		FoundAddress += bytesPerBlock;
+	}
+
+	if (!bAllWereZero)
+		return (void*)FoundAddress;
+	else
+		return StartAddress;
+}
+
+// search for first instance of an empty block
+void* DDSDataHack(void* StartAddress, unsigned int bytesPerBlock, unsigned int size)
+{
+	unsigned int FoundAddress = (unsigned int)StartAddress;
+	bool bAllWereZero = true;
+
+	while (FoundAddress < ((unsigned int)StartAddress + size))
+	{
+		// HACK!! since all our reads are aligned we don't need to worry about alignment...
+		for (unsigned int i = 0; i < bytesPerBlock; i++)
+		{
+			if (((unsigned char*)FoundAddress)[i])
+			{
+				bAllWereZero = false;
+				break;
+			}
+			else
+				bAllWereZero = true;
+		}
+		if (bAllWereZero)
+			break;
+		//bAllWereZero = true;
+		FoundAddress += bytesPerBlock;
+	}
+
+	if (bAllWereZero)
+		return (void*)FoundAddress;
+	else
+		return StartAddress;
+}
+
 // 360 deswizzling stuff
 // source from: https://github.com/emoose/FtexTool (thanks!)
 // converted to C / C++ by me
@@ -913,7 +1004,7 @@ unsigned int Deswizzle(void* data, int size, int width, int height, int numMipMa
 
 	switch (FourCC)
 	{
-	case 0x31545844:
+	case FOURCC_DXT1:
 		BlockSizeX = 4;
 		BlockSizeY = 4;
 		X360AlignX = 128;
@@ -921,8 +1012,8 @@ unsigned int Deswizzle(void* data, int size, int width, int height, int numMipMa
 		bytesPerBlock = 8;
 		found = true;
 		break;
-	case 0x33545844:
-	case 0x35545844:
+	case FOURCC_DXT3:
+	case FOURCC_DXT5:
 		BlockSizeX = 4;
 		BlockSizeY = 4;
 		X360AlignX = 128;
@@ -957,7 +1048,7 @@ unsigned int Deswizzle(void* data, int size, int width, int height, int numMipMa
 		UntiledData = UntileCompressedX360Texture((void*)((unsigned int)data + curAddr), size, width1, width, height1, BlockSizeX, BlockSizeY, bytesPerBlock);
 
 		memcpy((void*)((unsigned int)data + curAddr), UntiledData, size);
-		free(UntiledData);
+		//free(UntiledData);
 
 		curAddr += size;
 		width /= 2;
@@ -991,7 +1082,7 @@ unsigned int Deswizzle(void* data, int size, int width, int height, int numMipMa
 
 	switch (FourCC)
 	{
-	case 0x31545844:
+	case FOURCC_DXT1:
 		BlockSizeX = 4;
 		BlockSizeY = 4;
 		bytesPerBlock = 8;
@@ -999,7 +1090,7 @@ unsigned int Deswizzle(void* data, int size, int width, int height, int numMipMa
 		X360AlignY = 128;
 		PixelFormat = XGGetGpuFormat(D3DFMT_DXT1);
 		break;
-	case 0x33545844:
+	case FOURCC_DXT3:
 		BlockSizeX = 4;
 		BlockSizeY = 4;
 		bytesPerBlock = 16;
@@ -1007,13 +1098,21 @@ unsigned int Deswizzle(void* data, int size, int width, int height, int numMipMa
 		X360AlignY = 128;
 		PixelFormat = XGGetGpuFormat(D3DFMT_DXT3);
 		break;
-	case 0x35545844:
+	case FOURCC_DXT5:
 		BlockSizeX = 4;
 		BlockSizeY = 4;
 		bytesPerBlock = 16;
 		X360AlignX = 128;
 		X360AlignY = 128;
 		PixelFormat = XGGetGpuFormat(D3DFMT_DXT5);
+		break;
+	case FOURCC_ATI2:
+		BlockSizeX = 4;
+		BlockSizeY = 4;
+		bytesPerBlock = 16;
+		X360AlignX = 128;
+		X360AlignY = 128;
+		PixelFormat = XGGetGpuFormat(D3DFMT_DXN);
 		break;
 	default:
 		BlockSizeX = 1;
@@ -1038,7 +1137,7 @@ unsigned int Deswizzle(void* data, int size, int width, int height, int numMipMa
 		Pitch = (InputWidth / BlockSizeX) * bytesPerBlock;
 		
 		
-		if (((InputWidth < X360AlignX) && (InputHeight < X360AlignY)) && (i > 0))
+		if (((InputWidth < X360AlignX) || (InputHeight < X360AlignY)) && (i > 0))
 		{
 			// if the mipmap size is smaller than the 360's minimum row size, revert the read address to the previous state...
 			if (!bWentFromAligned)
@@ -1046,14 +1145,24 @@ unsigned int Deswizzle(void* data, int size, int width, int height, int numMipMa
 				//previoustexsize = texsize;
 				curReadAddr -= texsize;
 			}
-			else
-			{
-				curReadAddr += curReadAddr - curWriteAddr - texsize;
-			}
+
 			// ... and recalculate the new location specifically for this mipmap.
 			texsize = (InputWidth / BlockSizeX) * (InputHeight / BlockSizeY) * bytesPerBlock;
 			texsizealign = (width1 / BlockSizeX) * (height1 / BlockSizeY) * bytesPerBlock;
 			curReadAddr += texsizealign;
+
+			//if (width > height)
+			//	curReadAddr += curReadAddr - (texsize * ((width / height) * 2));
+
+			if (i == (numMipMaps - 1))
+			{
+				if (width == height)
+					curReadAddr += texsize * 2;
+				if (width > height)
+					curReadAddr += texsize * ((width / height) * 2);
+				if (width < height)
+					curReadAddr += texsize * ((height / width) * 2);
+			}
 
 			XGUntileTextureLevel(InputWidth, InputHeight, 0, PixelFormat, XGTILE_NONPACKED, (void*)((unsigned int)data + curWriteAddr), Pitch, NULL, (void*)((unsigned int)data + curReadAddr), NULL);
 			bWentFromAligned = true;
@@ -1073,7 +1182,91 @@ unsigned int Deswizzle(void* data, int size, int width, int height, int numMipMa
 		InputHeight /= 2;
 	}
 
-	return curWriteAddr;
+	return size;
 }
 
 #endif
+
+// checks if size is correct for the texture data, if not, it assumes it's adjusted to block sizes and un-does it
+int32_t Check360TexSize(uint8_t* data, int size, int width, int height, int numMipMaps, unsigned int FourCC)
+{
+	int BlockSizeX = 0;
+	int BlockSizeY = 0;
+	int bytesPerBlock = 0;
+	int Pitch = 0;
+	int CalcSize = 0;
+
+	int InputWidth = width;
+	int InputHeight = height;
+
+	switch (FourCC)
+	{
+	case FOURCC_DXT1:
+		BlockSizeX = 4;
+		BlockSizeY = 4;
+		bytesPerBlock = 8;
+		break;
+	case FOURCC_DXT3:
+		BlockSizeX = 4;
+		BlockSizeY = 4;
+		bytesPerBlock = 16;
+		break;
+	case FOURCC_DXT5:
+		BlockSizeX = 4;
+		BlockSizeY = 4;
+		bytesPerBlock = 16;
+		break;
+	case FOURCC_ATI2:
+		BlockSizeX = 4;
+		BlockSizeY = 4;
+		bytesPerBlock = 16;
+		break;
+	default:
+		BlockSizeX = 1;
+		BlockSizeY = 1;
+		bytesPerBlock = 4;
+		break;
+	}
+
+	if (!numMipMaps)
+	{
+		numMipMaps = 1;
+	}
+
+	for (int i = 0; i < numMipMaps; i++)
+	{
+		Pitch = (InputWidth / BlockSizeX) * bytesPerBlock;
+		CalcSize += Pitch * InputHeight;
+		InputWidth = InputWidth / 2;
+		InputHeight = InputHeight / 2;
+	}
+
+	// if there's a size difference, we have to intervene and restore the blocks
+	if (CalcSize < size)
+	{
+		InputWidth = width;
+		InputHeight = height;
+		int CurrentMipSize = 0;
+		//int in_data_cursor = 0;
+		//int out_data_cursor = 0;
+
+		for (int i = 0; i < numMipMaps; i++)
+		{
+			Pitch = (InputWidth / BlockSizeX) * bytesPerBlock;
+			CurrentMipSize = Pitch * InputHeight;
+			// copy the texture block of data back to the original location
+			for (int j = 0; j < CurrentMipSize; j+=Pitch)
+			{
+				memcpy(&data[j], &data[j * 2], Pitch);
+			}
+
+			InputWidth = InputWidth / 2;
+			InputHeight = InputHeight / 2;
+		}
+
+		return CalcSize;
+	}
+
+	return size;
+}
+

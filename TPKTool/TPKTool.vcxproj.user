@@ -1,35 +1,59 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <LocalDebuggerCommandArguments>-360-2 360GlobalB\158_BCHUNK_SPEED_TEXTURE_PACK_LIST_CHUNKS.tpk 360GlobalB\test</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>
+    </LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
-    <LocalDebuggerWorkingDirectory>E:\MyNFSCode\TPKtool\Release</LocalDebuggerWorkingDirectory>
+    <LocalDebuggerWorkingDirectory>
+    </LocalDebuggerWorkingDirectory>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug-XDKLibs|Win32'">
-    <LocalDebuggerCommandArguments>-360-2 360GlobalB\158_BCHUNK_SPEED_TEXTURE_PACK_LIST_CHUNKS.tpk 360GlobalB\test_xdk</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>
+    </LocalDebuggerCommandArguments>
+    <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
+    <LocalDebuggerWorkingDirectory>
+    </LocalDebuggerWorkingDirectory>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug-Xenia|Win32'">
+    <LocalDebuggerCommandArguments>-360-2 19_BCHUNK_SPEED_TEXTURE_PACK_LIST_CHUNKS.tpk</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
     <LocalDebuggerWorkingDirectory>E:\MyNFSCode\TPKtool\Release</LocalDebuggerWorkingDirectory>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <LocalDebuggerCommandArguments>E:\MyNFSCode\TPKtool\test3\GlobalMessageTextures.bin E:\MyNFSCode\TPKtool\test3\outtest</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release-XDKLibs|x64'">
-    <LocalDebuggerCommandArguments>
-    </LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>E:\MyNFSCode\TPKtool\test3\GlobalMessageTextures.bin E:\MyNFSCode\TPKtool\test3\outtest</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <LocalDebuggerCommand>$(TargetPath) -w newver2\D444E031.ini newver2_testing.tpk</LocalDebuggerCommand>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
+    <LocalDebuggerCommandArguments>
+    </LocalDebuggerCommandArguments>
+    <LocalDebuggerWorkingDirectory>
+    </LocalDebuggerWorkingDirectory>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release-XDKLibs|Win32'">
-    <LocalDebuggerCommand>$(TargetPath) -w newver2\D444E031.ini newver2_testing.tpk</LocalDebuggerCommand>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
+    <LocalDebuggerCommandArguments>
+    </LocalDebuggerCommandArguments>
+    <LocalDebuggerWorkingDirectory>
+    </LocalDebuggerWorkingDirectory>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <LocalDebuggerCommandArguments>PRECOMPVINYLS.BIN precompvinyls</LocalDebuggerCommandArguments>
+    <LocalDebuggerWorkingDirectory>E:\MyNFSCode\TPKtool\x64\Debug</LocalDebuggerWorkingDirectory>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug-XDKLibs|x64'">
+    <LocalDebuggerCommandArguments>PRECOMPVINYLS.BIN precompvinyls</LocalDebuggerCommandArguments>
+    <LocalDebuggerWorkingDirectory>E:\MyNFSCode\TPKtool\x64\Debug</LocalDebuggerWorkingDirectory>
+    <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug-Xenia|x64'">
+    <LocalDebuggerCommandArguments>PRECOMPVINYLS.BIN precompvinyls</LocalDebuggerCommandArguments>
+    <LocalDebuggerWorkingDirectory>E:\MyNFSCode\TPKtool\x64\Debug</LocalDebuggerWorkingDirectory>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
 </Project>
