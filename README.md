@@ -4,7 +4,7 @@ A general purpose TexturePack tool for NFS games
 
 ## Game compatibility
 
-This tool should now be compatible with almost every NFS game built on EAGL/Black Box NFS.
+This tool should now be compatible with almost every NFS game built on Speed/Black Box NFS.
 
 ## Platforms
 
