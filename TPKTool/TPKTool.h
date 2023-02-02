@@ -538,17 +538,6 @@ char* DuplicateFileName(const char* filename)
 	return DissectedPath;
 }
 
-bool CheckIfValidSettingsFile(FILE *finput)
-{
-	unsigned long int oldoffset = ftell(finput);
-	char TempBuffer[32];
-	fgets(TempBuffer, 32, finput);
-	if (strncmp(TempBuffer, "[TPK]\n", 7) == 0)
-		return 1;
-	else
-		return 0;
-}
-
 bool bCheckIfVaildFile(const char* FileName)
 {
 	if (!bFileExists(FileName))
