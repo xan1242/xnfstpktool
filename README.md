@@ -14,14 +14,7 @@ However, it produces working files from/to the following platforms so far:
 - PC
 - PS3
 - Xbox 360 (Giant work in progress)
-
-## Building
-
-The included solution is made from VS2015, however, you should be able to build this with any Visual Studio or Dev C++.
-
-- Open XNFSTPKTool.sln
-- Select the configuration that you desire
-- Output will be in the configuration's folder in the root directory
+- Xbox (Original, WIP)
 
 # TODO
 
