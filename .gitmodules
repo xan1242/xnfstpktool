@@ -1,0 +1,3 @@
+[submodule "TPKTool/includes/mINI"]
+	path = TPKTool/includes/mINI
+	url = https://github.com/pulzed/mINI
