@@ -1,0 +1,12 @@
+﻿################################################################################
+# This .gitignore file was automatically created by Microsoft(R) Visual Studio.
+################################################################################
+
+/.vs/XNFSTPKTool
+/Release-XDKLibs
+/TPKTool/Release
+/TPKTool/Release-XDKLibs
+/TPKTool/x64/Release
+/Debug-XDKLibs
+/TPKTool/Debug
+/TPKTool/Debug-XDKLibs
