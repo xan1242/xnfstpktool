@@ -115,8 +115,6 @@ int OutputDDSFromMemory(const char* OutFilePath, unsigned int TexNumber, void* D
 
 #endif
 
-int ReadingMode = 0;
-
 void* P8toRGBA(void* data, unsigned int Length, unsigned int* NewLength, unsigned int* palette)
 {
 	void* result = calloc(sizeof(char), (Length) * 4); // 8 bpp * 4 bytes per color
@@ -194,6 +192,7 @@ int OutputDDS(FILE *finput, const char* OutFilePath, unsigned int TexNumber, uns
 	void* OutDDSDataBuffer = malloc(OutTexStruct[TexNumber].Child4.ImageSize);
 
 	//(*OutTPKToolInternal).DDSDataBuffer = malloc(OutTexStruct[TexNumber].Child4.ImageSize);
+	OutTPKToolInternal->RelativeDDSDataOffset = RelativeStart;
 	fseek(finput, OutTexStruct[TexNumber].Child4.ImagePlacement + RelativeStart, SEEK_SET);
 	//fread((*OutTPKToolInternal).DDSDataBuffer, sizeof(char), OutTexStruct[TexNumber].Child4.ImageSize, finput);
 	fread(OutDDSDataBuffer, sizeof(char), OutTexStruct[TexNumber].Child4.ImageSize, finput);
@@ -1126,10 +1125,9 @@ int TPKChunkReader(FILE *finput, unsigned int ChunkSize, TexStruct *OutTexStruct
 		case TPK_CHILD3_CHUNKID:
 			switch (ReadingMode)
 			{
-			case TPKTOOL_READINGMODE_V2:
-				TPK_v2_ChildType3Reader(finput, Size, OutTPKToolInternal, OutTexStruct, OutGamePixelFormat);
-				break;
 			case TPKTOOL_READINGMODE_PLAT_V2_360:
+			case TPKTOOL_READINGMODE_PLAT_V2_PS2:
+			case TPKTOOL_READINGMODE_V2:
 				TPK_v2_ChildType3Reader(finput, Size, OutTPKToolInternal, OutTexStruct, OutGamePixelFormat);
 				break;
 			default:
@@ -1140,6 +1138,7 @@ int TPKChunkReader(FILE *finput, unsigned int ChunkSize, TexStruct *OutTexStruct
 		case TPK_CHILD4_CHUNKID:
 			switch (ReadingMode)
 			{
+			case TPKTOOL_READINGMODE_PLAT_V2_PS2:
 			case TPKTOOL_READINGMODE_V2:
 				TPK_v2_ChildType4Reader(finput, Size, OutTexStruct, OutTPKToolInternal);
 				break;
@@ -1154,6 +1153,7 @@ int TPKChunkReader(FILE *finput, unsigned int ChunkSize, TexStruct *OutTexStruct
 		case TPK_CHILD5_CHUNKID:
 			switch (ReadingMode)
 			{
+			case TPKTOOL_READINGMODE_PLAT_V2_PS2:
 			case TPKTOOL_READINGMODE_V2:
 				TPK_v2_ChildType5Reader(finput, Size, OutGamePixelFormat, OutTexStruct);
 				break;

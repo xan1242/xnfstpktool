@@ -108,6 +108,7 @@ While this tool can extract data for other platforms, it only fully works with P
 #define PRINTTYPE_INFO "INFO:"
 #define PRINTTYPE_WARNING "WARNING:"
 
+int ReadingMode = 0;
 int WritingMode = 0;
 
 #define FOURCC_DXT1 0x31545844
@@ -623,6 +624,16 @@ int SpitSettingsFile(const char* OutFileName, TexStruct *InTexStruct, TPKToolInt
 		fprintf(fout, "PixelFormatUnk2 = 0x%X\n", InGamePixelFormat[i].Unknown2);
 		fprintf(fout, "PixelFormatUnk3 = 0x%X\n", InGamePixelFormat[i].Unknown3);
 
+		if ((ReadingMode == TPKTOOL_READINGMODE_PLAT_PS2) || (ReadingMode == TPKTOOL_READINGMODE_PLAT_V2_PS2))
+		{
+			fprintf(fout, "Width = %d\n", InTexStruct[i].Child4.Width);
+			fprintf(fout, "Height = %d\n", InTexStruct[i].Child4.Height);
+			fprintf(fout, "ImagePlacement = 0x%X\n", InTexStruct[i].Child4.ImagePlacement);
+			fprintf(fout, "ImageSize = 0x%X\n", InTexStruct[i].Child4.ImageSize);
+			fprintf(fout, "PalettePlacement = 0x%X\n", InTexStruct[i].Child4.PalettePlacement);
+			fprintf(fout, "PaletteSize = 0x%X\n", InTexStruct[i].Child4.PaletteSize);
+		}
+
 		//fprintf(fout, "\n[%X]\n", InTexStruct[i].Child4.Hash);
 		//fprintf(fout, "File = %s\n", InTexStruct[i].FilesystemPath);
 		//fprintf(fout, "Name = %s\n", InTexStruct[i].TexName);
@@ -647,6 +658,29 @@ int SpitSettingsFile(const char* OutFileName, TexStruct *InTexStruct, TPKToolInt
 	}
 	fclose(fout);
 	return 1;
+}
+
+int WriteConsoleTexExplorerIni_PS2(const char* outFilename, TexStruct* InTexStruct, TPKToolInternalStruct* InTPKToolInternal)
+{
+	FILE* fout = fopen(outFilename, "wb");
+
+	fputs("[items_count]\n", fout);
+	fprintf(fout, "count=%d\n", InTPKToolInternal->TextureDataCount);
+	for (unsigned int i = 0; i < InTPKToolInternal->TextureDataCount; i++)
+	{
+		fprintf(fout, "[item_%d]\n", i);
+		fprintf(fout, "name=%s\n", InTexStruct[i].TexName);
+		fputs("platform=PS2\n", fout);
+		fprintf(fout, "offset=%d\n", InTexStruct[i].Child4.ImagePlacement + InTPKToolInternal->RelativeDDSDataOffset);
+		fprintf(fout, "width=%d\n", InTexStruct[i].Child4.Width);
+		fprintf(fout, "height=%d\n", InTexStruct[i].Child4.Height);
+		fprintf(fout, "BPP=%d\n", InTexStruct[i].Child4.ImageCompressionType);
+		fputs("mipmaps=-1\n", fout);
+		fprintf(fout, "palette_offset=%d\n", InTexStruct[i].Child4.PalettePlacement + InTPKToolInternal->RelativeDDSDataOffset);
+		fputs("swizzling=Enabled\n", fout);
+	}
+
+	return 0;
 }
 
 int OutputInfoToFile(const char* OutFileName, TexStruct *InTexStruct, TPKToolInternalStruct *InTPKToolInternal, GamePixelFormatStruct *InGamePixelFormat, TPKAnimStruct *InTPKAnim)

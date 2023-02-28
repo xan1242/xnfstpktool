@@ -359,8 +359,8 @@ int main(int argc, char *argv[])
 		ReadingMode = TPKTOOL_READINGMODE_PLAT_PS2;
 
 		//unimplemented... temp code.
-		printf("%s Unimplemented... Code coming soon. Use PC modes to get some data out for now.\n", PRINTTYPE_INFO);
-		return 0;
+		//printf("%s Unimplemented... Code coming soon. Use PC modes to get some data out for now.\n", PRINTTYPE_INFO);
+		//return 0;
 	}
 
 	else if (strncmp(argv[1], "-PS2-2", 6) == 0)
@@ -369,8 +369,8 @@ int main(int argc, char *argv[])
 		ReadingMode = TPKTOOL_READINGMODE_PLAT_V2_PS2;
 
 		//unimplemented... temp code.
-		printf("%s Unimplemented... Code coming soon. Use PC modes to get some data out for now.\n", PRINTTYPE_INFO);
-		return 0;
+		//printf("%s Unimplemented... Code coming soon. Use PC modes to get some data out for now.\n", PRINTTYPE_INFO);
+		//return 0;
 	}
 
 	else if (strncmp(argv[1], "-XBX", 6) == 0)
@@ -449,6 +449,16 @@ int main(int argc, char *argv[])
 	strcat((*TPKToolStuff).TotalFilePath, (*TPKToolStuff).SettingsFileName);
 	printf("%s Outputting settings to: %s\n", PRINTTYPE_INFO, (*TPKToolStuff).TotalFilePath);
 	SpitSettingsFile((*TPKToolStuff).TotalFilePath, texture, TPKToolStuff, TPKAnim, GamePixelFormat);
+
+	if (ReadingMode == TPKTOOL_READINGMODE_PLAT_V2_PS2)
+	{
+		string CTEininame = argv[2];
+		CTEininame += "_CTE.ini";
+
+		std::cout << "Writing Console Texture Explorer ini to: " << CTEininame << '\n';
+
+		WriteConsoleTexExplorerIni_PS2(CTEininame.c_str(), texture, TPKToolStuff);
+	}
 
 	free(TPKToolStuff);
 
