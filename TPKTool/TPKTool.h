@@ -1,6 +1,9 @@
 #pragma once
 #include <string.h>
 #include <stdlib.h>
+#include <iostream>
+#include <string>
+using namespace std;
 
 // XBOX 360 SDK NOTICE:
 // 
@@ -110,6 +113,7 @@ While this tool can extract data for other platforms, it only fully works with P
 
 int ReadingMode = 0;
 int WritingMode = 0;
+bool bCompressed = 0;
 
 #define FOURCC_DXT1 0x31545844
 #define FOURCC_DXT3 0x33545844
@@ -224,6 +228,15 @@ struct TPKChild3Struct
 	//unsigned int Unknown[3];
 };
 
+struct TPKChild3_v2_Struct
+{
+	uint32_t TextureHash;
+	uint32_t AbsoluteOffset;
+	uint32_t Size;
+	uint32_t OutSize;
+	uint32_t FromEndToHeaderOffset;
+};
+
 struct CompressBlockHead
 {
 	unsigned int CompressBlockMagic; // = 0x55441122
@@ -232,6 +245,14 @@ struct CompressBlockHead
 	unsigned int Unknown2; // += OutSize
 	unsigned int Unknown3; // += TotalBlockSize
 	unsigned int Unknown4;
+};
+
+struct JDLZhead
+{
+	uint32_t CompressBlockMagic;
+	uint32_t unk1;
+	uint32_t OutSize;
+	uint32_t InSize;
 };
 
 struct TPK_v4_Child4Struct // World
@@ -454,7 +475,8 @@ struct TPKToolInternalStruct
 	char StatFileName[32];
 	char SettingsFileName[32];
 	char OutputPath[1024];
-	char TotalFilePath[1124];
+	char TotalFilePath[1024];
+	string TIMDataName;
 	unsigned int HashArray[7];
 	unsigned int TextureCategoryHashArray[0xFFFF];
 	unsigned int TextureCategoryHashCount;
@@ -674,9 +696,18 @@ int WriteConsoleTexExplorerIni_PS2(const char* outFilename, TexStruct* InTexStru
 		fprintf(fout, "offset=%d\n", InTexStruct[i].Child4.ImagePlacement + InTPKToolInternal->RelativeDDSDataOffset);
 		fprintf(fout, "width=%d\n", InTexStruct[i].Child4.Width);
 		fprintf(fout, "height=%d\n", InTexStruct[i].Child4.Height);
-		fprintf(fout, "BPP=%d\n", InTexStruct[i].Child4.ImageCompressionType);
-		fputs("mipmaps=-1\n", fout);
-		fprintf(fout, "palette_offset=%d\n", InTexStruct[i].Child4.PalettePlacement + InTPKToolInternal->RelativeDDSDataOffset);
+		//fprintf(fout, "BPP=%d\n", InTexStruct[i].Child4.ImageCompressionType);
+		fputs("BPP=8\n", fout);
+		if (bCompressed)
+		{
+			fputs("mipmaps=0\n", fout);
+			fputs("palette_offset=-1\n", fout);
+		}
+		else
+		{
+			fputs("mipmaps=-1\n", fout);
+			fprintf(fout, "palette_offset=%d\n", InTexStruct[i].Child4.PalettePlacement + InTPKToolInternal->RelativeDDSDataOffset);
+		}
 		fputs("swizzling=Enabled\n", fout);
 	}
 

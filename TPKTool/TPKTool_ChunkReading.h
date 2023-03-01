@@ -2,6 +2,9 @@
 #include "stdafx.h"
 #include <stdlib.h>
 #include <direct.h>
+#include <iostream>
+#include <vector>
+using namespace std;
 
 // uncomment this to enable decompression code, requires DecompressionCode.h which contains propriatery game code
 // place DecompressionCode.h in the project folder (also named TPKTool)
@@ -13,8 +16,8 @@
 int(__cdecl *Ripped_LZDecompress)(unsigned char* InBuffer, unsigned char* OutBuffer) = (int(__cdecl*)(unsigned char*, unsigned char*))(DecompressionCode + 0x6670);
 unsigned int BogusPointer = 0;
 bool bCodePatched = 0;
-bool bCompressed = 0;
 bool bDoCompressedStringsOnce = 0;
+vector<uint32_t> TIMoffsets;
 
 /*int OutputDDSFromMemory(const char* OutFilePath, TexStruct InTexture, GamePixelFormatStruct InGamePixelFormat, DirectX::DDS_HEADER InDDSHeaderStruct, DirectX::DDS_PIXELFORMAT InDDSPixelFormatStruct, unsigned int TexNumber, void* DDSDataBuffer)
 {
@@ -714,47 +717,55 @@ int TPK_v2_ChildType4Reader(FILE *finput, unsigned int ChunkSize, TexStruct* Out
 
 	unsigned int RelativeEnd = ftell(finput) + ChunkSize;
 	printf("TPK Child 4 size: %X\n", ChunkSize);
+	uint32_t tdc = OutTPKToolInternal->TextureDataCount;
+
 	while (ftell(finput) < RelativeEnd)
 	{
 		fread(TPKv4Child4_Bridge, sizeof(OldTextureInfo), 1, finput);
-		strncpy(OutTexStruct[(*OutTPKToolInternal).TextureDataCount].TexName, (*TPKv4Child4_Bridge).DebugName, 0x18);
-		OutTexStruct[(*OutTPKToolInternal).TextureDataCount].Child4.NameHash = (*TPKv4Child4_Bridge).NameHash;
-		OutTexStruct[(*OutTPKToolInternal).TextureDataCount].Child4.ClassNameHash = (*TPKv4Child4_Bridge).ClassNameHash;
-		OutTexStruct[(*OutTPKToolInternal).TextureDataCount].Child4.ImagePlacement = (*TPKv4Child4_Bridge).ImagePlacement;
-		OutTexStruct[(*OutTPKToolInternal).TextureDataCount].Child4.PalettePlacement = (*TPKv4Child4_Bridge).PalettePlacement;
-		OutTexStruct[(*OutTPKToolInternal).TextureDataCount].Child4.ImageSize = (*TPKv4Child4_Bridge).ImageSize;
-		OutTexStruct[(*OutTPKToolInternal).TextureDataCount].Child4.PaletteSize = (*TPKv4Child4_Bridge).PaletteSize;
-		OutTexStruct[(*OutTPKToolInternal).TextureDataCount].Child4.BaseImageSize = (*TPKv4Child4_Bridge).BaseImageSize;
-		OutTexStruct[(*OutTPKToolInternal).TextureDataCount].Child4.Width = (*TPKv4Child4_Bridge).Width;
-		OutTexStruct[(*OutTPKToolInternal).TextureDataCount].Child4.Height = (*TPKv4Child4_Bridge).Height;
-		OutTexStruct[(*OutTPKToolInternal).TextureDataCount].Child4.ShiftWidth = (*TPKv4Child4_Bridge).ShiftWidth;
-		OutTexStruct[(*OutTPKToolInternal).TextureDataCount].Child4.ShiftHeight = (*TPKv4Child4_Bridge).ShiftHeight;
-		OutTexStruct[(*OutTPKToolInternal).TextureDataCount].Child4.ImageCompressionType = (*TPKv4Child4_Bridge).ImageCompressionType;
-		OutTexStruct[(*OutTPKToolInternal).TextureDataCount].Child4.PaletteCompressionType = (*TPKv4Child4_Bridge).PaletteCompressionType;
-		OutTexStruct[(*OutTPKToolInternal).TextureDataCount].Child4.NumPaletteEntries = (*TPKv4Child4_Bridge).NumPaletteEntries;
-		OutTexStruct[(*OutTPKToolInternal).TextureDataCount].Child4.NumMipMapLevels = (*TPKv4Child4_Bridge).NumMipMapLevels;
-		OutTexStruct[(*OutTPKToolInternal).TextureDataCount].Child4.TilableUV = (*TPKv4Child4_Bridge).TilableUV;
-		OutTexStruct[(*OutTPKToolInternal).TextureDataCount].Child4.BiasLevel = (*TPKv4Child4_Bridge).BiasLevel;
-		OutTexStruct[(*OutTPKToolInternal).TextureDataCount].Child4.RenderingOrder = (*TPKv4Child4_Bridge).RenderingOrder;
-		OutTexStruct[(*OutTPKToolInternal).TextureDataCount].Child4.ScrollType = (*TPKv4Child4_Bridge).ScrollType;
-		OutTexStruct[(*OutTPKToolInternal).TextureDataCount].Child4.UsedFlag = (*TPKv4Child4_Bridge).UsedFlag;
-		OutTexStruct[(*OutTPKToolInternal).TextureDataCount].Child4.ApplyAlphaSorting = (*TPKv4Child4_Bridge).ApplyAlphaSorting;
-		OutTexStruct[(*OutTPKToolInternal).TextureDataCount].Child4.AlphaUsageType = (*TPKv4Child4_Bridge).AlphaUsageType;
-		OutTexStruct[(*OutTPKToolInternal).TextureDataCount].Child4.AlphaBlendType = (*TPKv4Child4_Bridge).AlphaBlendType;
-		OutTexStruct[(*OutTPKToolInternal).TextureDataCount].Child4.Flags = (*TPKv4Child4_Bridge).Flags;
+		strncpy(OutTexStruct[tdc].TexName, (*TPKv4Child4_Bridge).DebugName, 0x18);
+		OutTexStruct[tdc].Child4.NameHash = (*TPKv4Child4_Bridge).NameHash;
+		OutTexStruct[tdc].Child4.ClassNameHash = (*TPKv4Child4_Bridge).ClassNameHash;
+		OutTexStruct[tdc].Child4.ImagePlacement = (*TPKv4Child4_Bridge).ImagePlacement;
+		OutTexStruct[tdc].Child4.PalettePlacement = (*TPKv4Child4_Bridge).PalettePlacement;
+		OutTexStruct[tdc].Child4.ImageSize = (*TPKv4Child4_Bridge).ImageSize;
+		OutTexStruct[tdc].Child4.PaletteSize = (*TPKv4Child4_Bridge).PaletteSize;
+		OutTexStruct[tdc].Child4.BaseImageSize = (*TPKv4Child4_Bridge).BaseImageSize;
+		OutTexStruct[tdc].Child4.Width = (*TPKv4Child4_Bridge).Width;
+		OutTexStruct[tdc].Child4.Height = (*TPKv4Child4_Bridge).Height;
+		OutTexStruct[tdc].Child4.ShiftWidth = (*TPKv4Child4_Bridge).ShiftWidth;
+		OutTexStruct[tdc].Child4.ShiftHeight = (*TPKv4Child4_Bridge).ShiftHeight;
+		OutTexStruct[tdc].Child4.ImageCompressionType = (*TPKv4Child4_Bridge).ImageCompressionType;
+		OutTexStruct[tdc].Child4.PaletteCompressionType = (*TPKv4Child4_Bridge).PaletteCompressionType;
+		OutTexStruct[tdc].Child4.NumPaletteEntries = (*TPKv4Child4_Bridge).NumPaletteEntries;
+		OutTexStruct[tdc].Child4.NumMipMapLevels = (*TPKv4Child4_Bridge).NumMipMapLevels;
+		OutTexStruct[tdc].Child4.TilableUV = (*TPKv4Child4_Bridge).TilableUV;
+		OutTexStruct[tdc].Child4.BiasLevel = (*TPKv4Child4_Bridge).BiasLevel;
+		OutTexStruct[tdc].Child4.RenderingOrder = (*TPKv4Child4_Bridge).RenderingOrder;
+		OutTexStruct[tdc].Child4.ScrollType = (*TPKv4Child4_Bridge).ScrollType;
+		OutTexStruct[tdc].Child4.UsedFlag = (*TPKv4Child4_Bridge).UsedFlag;
+		OutTexStruct[tdc].Child4.ApplyAlphaSorting = (*TPKv4Child4_Bridge).ApplyAlphaSorting;
+		OutTexStruct[tdc].Child4.AlphaUsageType = (*TPKv4Child4_Bridge).AlphaUsageType;
+		OutTexStruct[tdc].Child4.AlphaBlendType = (*TPKv4Child4_Bridge).AlphaBlendType;
+		OutTexStruct[tdc].Child4.Flags = (*TPKv4Child4_Bridge).Flags;
 		//OutTexStruct[(*OutTPKToolInternal).TextureDataCount].Child4.MipmapBiasType = (*TPKv4Child4_Bridge).MipmapBiasType;
 		//OutTexStruct[(*OutTPKToolInternal).TextureDataCount].Child4.Padding = (*TPKv4Child4_Bridge).Unknown3;
-		OutTexStruct[(*OutTPKToolInternal).TextureDataCount].Child4.ScrollTimeStep = (*TPKv4Child4_Bridge).ScrollTimeStep;
-		OutTexStruct[(*OutTPKToolInternal).TextureDataCount].Child4.ScrollSpeedS = (*TPKv4Child4_Bridge).ScrollSpeedS;
-		OutTexStruct[(*OutTPKToolInternal).TextureDataCount].Child4.ScrollSpeedT = (*TPKv4Child4_Bridge).ScrollSpeedT;
-		OutTexStruct[(*OutTPKToolInternal).TextureDataCount].Child4.OffsetS = (*TPKv4Child4_Bridge).OffsetS;
-		OutTexStruct[(*OutTPKToolInternal).TextureDataCount].Child4.OffsetT = (*TPKv4Child4_Bridge).OffsetT;
-		OutTexStruct[(*OutTPKToolInternal).TextureDataCount].Child4.ScaleS = (*TPKv4Child4_Bridge).ScaleS;
-		OutTexStruct[(*OutTPKToolInternal).TextureDataCount].Child4.ScaleT = (*TPKv4Child4_Bridge).ScaleT;
+		OutTexStruct[tdc].Child4.ScrollTimeStep = (*TPKv4Child4_Bridge).ScrollTimeStep;
+		OutTexStruct[tdc].Child4.ScrollSpeedS = (*TPKv4Child4_Bridge).ScrollSpeedS;
+		OutTexStruct[tdc].Child4.ScrollSpeedT = (*TPKv4Child4_Bridge).ScrollSpeedT;
+		OutTexStruct[tdc].Child4.OffsetS = (*TPKv4Child4_Bridge).OffsetS;
+		OutTexStruct[tdc].Child4.OffsetT = (*TPKv4Child4_Bridge).OffsetT;
+		OutTexStruct[tdc].Child4.ScaleS = (*TPKv4Child4_Bridge).ScaleS;
+		OutTexStruct[tdc].Child4.ScaleT = (*TPKv4Child4_Bridge).ScaleT;
 
-
-		(*OutTPKToolInternal).TextureDataCount++;
+		if (ReadingMode == TPKTOOL_READINGMODE_PLAT_V2_PS2)
+		{
+			OutTexStruct[tdc].Child4.ImagePlacement = TIMoffsets.at(tdc);
+			OutTexStruct[tdc].Child4.PalettePlacement = (*TPKv4Child4_Bridge).PalettePlacement + TIMoffsets.at(tdc);
+		}
+		tdc++;
 	}
+
+	OutTPKToolInternal->TextureDataCount = tdc;
 	free(TPKv4Child4_Bridge);
 	return 1;
 }
@@ -1058,6 +1069,59 @@ int TPK_v2_ChildType3Reader(FILE *finput, unsigned int ChunkSize, TPKToolInterna
 	return 1;
 }
 
+int TPK_v2_ChildType3Reader_PS2(FILE* finput, unsigned int ChunkSize, TPKToolInternalStruct* InTPKToolInternal, TexStruct* InTexStruct, GamePixelFormatStruct* InGamePixelFormatStruct)
+{
+	printf("TPK Child 3 size: %X\n", ChunkSize);
+	unsigned int RelativeEnd = ftell(finput) + ChunkSize;
+	unsigned int SavedOffset = 0;
+	unsigned char* InBuffer, * OutBuffer, * DDSDataBuffer;
+	TPKChild3_v2_Struct Child3;
+	bCompressed = true;
+
+	sprintf(InTPKToolInternal->SettingsFileName, "%X", InTPKToolInternal->HashArray[0]);
+	strcat(InTPKToolInternal->SettingsFileName, ".ini");
+
+	if (InTPKToolInternal->TIMDataName.length() == 0)
+	{
+		InTPKToolInternal->TIMDataName = InTPKToolInternal->TotalFilePath;
+		InTPKToolInternal->TIMDataName += "\\";
+		InTPKToolInternal->TIMDataName += "timdata.bin";
+	}
+	FILE* ftim = fopen(InTPKToolInternal->TIMDataName.c_str(), "wb");
+
+	do
+	{
+		JDLZhead cmphdr;
+		fread(&Child3, sizeof(TPKChild3_v2_Struct), 1, finput);
+		SavedOffset = ftell(finput);
+		fseek(finput, Child3.AbsoluteOffset, SEEK_SET);
+		fread(&cmphdr, sizeof(JDLZhead), 1, finput);
+		fseek(finput, Child3.AbsoluteOffset, SEEK_SET);
+
+		InBuffer = (unsigned char*)malloc(Child3.Size);
+		OutBuffer = (unsigned char*)malloc(cmphdr.OutSize);
+		//InfoBuffer = (unsigned char*)malloc(Child3.FromEndToHeaderOffset);
+
+		fread(InBuffer, Child3.Size, 1, finput);
+		fseek(finput, SavedOffset, SEEK_SET); // input file is unnecessary at this point
+
+		//	NumberOfCompBlocks = 0;
+
+		LZDecompress(InBuffer, OutBuffer);
+
+		
+		TIMoffsets.push_back(ftell(ftim));
+		fwrite(OutBuffer, cmphdr.OutSize, 1, ftim);
+		
+
+		free(OutBuffer);
+		free(InBuffer);
+		//(*InTPKToolInternal).TextureDataCount++;
+	} while (ftell(finput) < RelativeEnd);
+	fclose(ftim);
+	return 1;
+}
+
 
 #else
 int TPKChildType3Reader(FILE *finput, unsigned int ChunkSize, TPKToolInternalStruct *InTPKToolInternal, TexStruct *InTexStruct, GamePixelFormatStruct *InGamePixelFormatStruct)
@@ -1129,9 +1193,11 @@ int TPKChunkReader(FILE *finput, unsigned int ChunkSize, TexStruct *OutTexStruct
 			switch (ReadingMode)
 			{
 			case TPKTOOL_READINGMODE_PLAT_V2_360:
-			case TPKTOOL_READINGMODE_PLAT_V2_PS2:
 			case TPKTOOL_READINGMODE_V2:
 				TPK_v2_ChildType3Reader(finput, Size, OutTPKToolInternal, OutTexStruct, OutGamePixelFormat);
+				break;
+			case TPKTOOL_READINGMODE_PLAT_V2_PS2:
+				TPK_v2_ChildType3Reader_PS2(finput, Size, OutTPKToolInternal, OutTexStruct, OutGamePixelFormat);
 				break;
 			default:
 				TPKChildType3Reader(finput, Size, OutTPKToolInternal, OutTexStruct, OutGamePixelFormat);
