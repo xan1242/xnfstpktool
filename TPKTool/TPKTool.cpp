@@ -373,6 +373,17 @@ int main(int argc, char *argv[])
 		//return 0;
 	}
 
+	else if (strncmp(argv[1], "-PS2-MW", 7) == 0)
+	{
+		printf("%s Going into PS2 TPKv4 MW mode!\n", PRINTTYPE_INFO);
+		ReadingMode = TPKTOOL_READINGMODE_PLAT_V2_PS2;
+		bMW_PS2 = true;
+
+		//unimplemented... temp code.
+		//printf("%s Unimplemented... Code coming soon. Use PC modes to get some data out for now.\n", PRINTTYPE_INFO);
+		//return 0;
+	}
+
 	else if (strncmp(argv[1], "-XBX", 6) == 0)
 	{
 		printf("%s Going into Xbox mode!\n", PRINTTYPE_INFO);

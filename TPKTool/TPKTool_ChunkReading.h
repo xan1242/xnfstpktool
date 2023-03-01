@@ -1069,6 +1069,128 @@ int TPK_v2_ChildType3Reader(FILE *finput, unsigned int ChunkSize, TPKToolInterna
 	return 1;
 }
 
+int TPK_v2_ChildType3Reader_PS2_MW(FILE* finput, unsigned int ChunkSize, TPKToolInternalStruct* InTPKToolInternal, TexStruct* InTexStruct, GamePixelFormatStruct* InGamePixelFormatStruct)
+{
+	printf("TPK Child 3 size: %X\n", ChunkSize);
+	unsigned int RelativeEnd = ftell(finput) + ChunkSize;
+	unsigned int SavedOffset = 0;
+	unsigned char* InBuffer, * OutBuffer, * DDSDataBuffer;
+	TPKChild3Struct Child3;
+	bCompressed = true;
+	bUG2_PS2 = true;
+	uint32_t tdc = 0;
+
+	sprintf(InTPKToolInternal->SettingsFileName, "%X", InTPKToolInternal->HashArray[0]);
+	strcat(InTPKToolInternal->SettingsFileName, ".ini");
+
+	if (TIMDataName.length() == 0)
+	{
+		TIMDataName = InTPKToolInternal->TotalFilePath;
+		TIMDataName += "\\";
+		TIMDataName += "timdata.bin";
+
+	}
+	FILE* ftim = fopen(TIMDataName.c_str(), "wb");
+
+	do
+	{
+		fread(&Child3, sizeof(TPKChild3Struct), 1, finput);
+		SavedOffset = ftell(finput);
+		fseek(finput, Child3.AbsoluteOffset, SEEK_SET);
+
+		if (Child3.FromEndToHeaderOffset)
+		{
+			JDLZhead cmphdr;
+			fread(&cmphdr, sizeof(JDLZhead), 1, finput);
+			fseek(finput, Child3.AbsoluteOffset, SEEK_SET);
+
+			InBuffer = (unsigned char*)malloc(Child3.Size);
+			OutBuffer = (unsigned char*)malloc(cmphdr.OutSize);
+			//InfoBuffer = (unsigned char*)malloc(Child3.FromEndToHeaderOffset);
+
+			fread(InBuffer, Child3.Size, 1, finput);
+			fseek(finput, SavedOffset, SEEK_SET); // input file is unnecessary at this point
+
+			LZDecompress(InBuffer, OutBuffer);
+
+			OldTextureInfo* ti = (OldTextureInfo*)((uint64_t)(OutBuffer) + cmphdr.OutSize - 0xD0); // address this via 64 bits properly
+
+			//memcpy(&(InTexStruct[tdc].Child4), ti, sizeof(OldTextureInfo));
+
+			InTexStruct[tdc].Child4.NameHash = ti->NameHash;
+			InTexStruct[tdc].Child4.ClassNameHash = ti->ClassNameHash;
+			InTexStruct[tdc].Child4.ImagePlacement = ftell(ftim);
+			if (ti->PalettePlacement > 0)
+				InTexStruct[tdc].Child4.PalettePlacement = ftell(ftim) + ti->PalettePlacement;
+			else
+				InTexStruct[tdc].Child4.PalettePlacement = ti->PalettePlacement;
+			InTexStruct[tdc].Child4.ImageSize = ti->ImageSize;
+			InTexStruct[tdc].Child4.PaletteSize = ti->PaletteSize;
+			InTexStruct[tdc].Child4.BaseImageSize = ti->BaseImageSize;
+			InTexStruct[tdc].Child4.Width = ti->Width;
+			InTexStruct[tdc].Child4.Height = ti->Height;
+			InTexStruct[tdc].Child4.ShiftWidth = ti->ShiftWidth;
+			InTexStruct[tdc].Child4.ShiftHeight = ti->ShiftHeight;
+			InTexStruct[tdc].Child4.ImageCompressionType = ti->ImageCompressionType;
+			InTexStruct[tdc].Child4.PaletteCompressionType = ti->PaletteCompressionType;
+			InTexStruct[tdc].Child4.NumPaletteEntries = ti->NumPaletteEntries;
+			InTexStruct[tdc].Child4.NumMipMapLevels = ti->NumMipMapLevels;
+			InTexStruct[tdc].Child4.TilableUV = ti->TilableUV;
+			InTexStruct[tdc].Child4.BiasLevel = ti->BiasLevel;
+			InTexStruct[tdc].Child4.RenderingOrder = ti->RenderingOrder;
+			InTexStruct[tdc].Child4.ScrollType = ti->ScrollType;
+			InTexStruct[tdc].Child4.UsedFlag = ti->UsedFlag;
+			InTexStruct[tdc].Child4.ApplyAlphaSorting = ti->ApplyAlphaSorting;
+			InTexStruct[tdc].Child4.AlphaUsageType = ti->AlphaUsageType;
+			InTexStruct[tdc].Child4.AlphaBlendType = ti->AlphaBlendType;
+			InTexStruct[tdc].Child4.Flags = ti->Flags;
+			//OutTexStruct[(*OutTPKToolInternal).TextureDataCount].Child4.MipmapBiasType = ti->MipmapBiasType;
+			//OutTexStruct[(*OutTPKToolInternal).TextureDataCount].Child4.Padding = ti->Unknown3;
+			InTexStruct[tdc].Child4.ScrollTimeStep = ti->ScrollTimeStep;
+			InTexStruct[tdc].Child4.ScrollSpeedS = ti->ScrollSpeedS;
+			InTexStruct[tdc].Child4.ScrollSpeedT = ti->ScrollSpeedT;
+			InTexStruct[tdc].Child4.OffsetS = ti->OffsetS;
+			InTexStruct[tdc].Child4.OffsetT = ti->OffsetT;
+			InTexStruct[tdc].Child4.ScaleS = ti->ScaleS;
+			InTexStruct[tdc].Child4.ScaleT = ti->ScaleT;
+
+			strcpy_s(InTexStruct[tdc].TexName, ti->DebugName);
+
+			//InTexStruct[tdc].Child4.
+
+			TIMoffsets.push_back(ftell(ftim));
+			fwrite(OutBuffer, cmphdr.OutSize - 0xD0, 1, ftim);
+
+
+			free(OutBuffer);
+			free(InBuffer);
+		}
+		else
+		{
+			fseek(finput, Child3.AbsoluteOffset, SEEK_SET);
+			InBuffer = (unsigned char*)malloc(Child3.Size);
+			fread(InBuffer, Child3.Size, 1, finput);
+			fseek(finput, SavedOffset, SEEK_SET); // input file is unnecessary at this point
+
+			OldTextureInfo* ti = (OldTextureInfo*)((uint64_t)(InBuffer)+Child3.Size - 0xD0); // address this via 64 bits properly
+			memcpy(&(InTexStruct[tdc].Child4), ti, sizeof(OldTextureInfo));
+
+			TIMoffsets.push_back(ftell(ftim));
+			fwrite(InBuffer, Child3.Size, 1, ftim);
+
+			free(InBuffer);
+		}
+
+		tdc++;
+		//(*InTPKToolInternal).TextureDataCount++;
+	} while (ftell(finput) < RelativeEnd);
+
+	InTPKToolInternal->TextureDataCount = tdc;
+
+	fclose(ftim);
+	return 1;
+}
+
 int TPK_v2_ChildType3Reader_PS2(FILE* finput, unsigned int ChunkSize, TPKToolInternalStruct* InTPKToolInternal, TexStruct* InTexStruct, GamePixelFormatStruct* InGamePixelFormatStruct)
 {
 	printf("TPK Child 3 size: %X\n", ChunkSize);
@@ -1234,7 +1356,10 @@ int TPKChunkReader(FILE *finput, unsigned int ChunkSize, TexStruct *OutTexStruct
 				TPK_v2_ChildType3Reader(finput, Size, OutTPKToolInternal, OutTexStruct, OutGamePixelFormat);
 				break;
 			case TPKTOOL_READINGMODE_PLAT_V2_PS2:
-				TPK_v2_ChildType3Reader_PS2(finput, Size, OutTPKToolInternal, OutTexStruct, OutGamePixelFormat);
+				if (bMW_PS2)
+					TPK_v2_ChildType3Reader_PS2_MW(finput, Size, OutTPKToolInternal, OutTexStruct, OutGamePixelFormat);
+				else
+					TPK_v2_ChildType3Reader_PS2(finput, Size, OutTPKToolInternal, OutTexStruct, OutGamePixelFormat);
 				break;
 			default:
 				TPKChildType3Reader(finput, Size, OutTPKToolInternal, OutTexStruct, OutGamePixelFormat);

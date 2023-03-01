@@ -88,6 +88,7 @@ Default: InFile = TPK file | OutFile = Output folder path\n\
 -2     : TPK v4- mode (UG2 & MW), InFile = TPK file | OutFile = Output folder path\n\
 -PS2   : PS2 mode (TPK v5+), InFile = TPK file | OutFile = Output folder path\n\
 -PS2-2 : PS2 mode (TPK v4-), InFile = TPK file | OutFile = Output folder path\n\
+-PS2-MW : PS2 mode (TPK v4 MW), InFile = TPK file | OutFile = Output folder path\n\
 -PS3   : PS3 mode (TPK v5+ only), InFile = TPK file | OutFile = Output folder path\n\
 -360   : 360 mode (TPK v5+), InFile = TPK file | OutFile = Output folder path\n\
 -360-2 : 360 mode (TPK v4-), InFile = TPK file | OutFile = Output folder path\n\
@@ -115,6 +116,7 @@ int ReadingMode = 0;
 int WritingMode = 0;
 bool bCompressed = 0;
 bool bUG2_PS2 = false;
+bool bMW_PS2 = false;
 
 #define FOURCC_DXT1 0x31545844
 #define FOURCC_DXT3 0x33545844
@@ -700,18 +702,54 @@ int WriteConsoleTexExplorerIni_PS2(const char* outFilename, TexStruct* InTexStru
 		fprintf(fout, "height=%d\n", InTexStruct[i].Child4.Height);
 		if (bCompressed)
 		{
-			if (bUG2_PS2)
-				fprintf(fout, "BPP=%d\n", InTexStruct[i].Child4.ImageCompressionType);
-			else
+			if (InTexStruct[i].Child4.ImageCompressionType == 0)
 				fputs("BPP=8\n", fout);
+			else
+			{
+				if (InTexStruct[i].Child4.ImageCompressionType & 0x4)
+					fputs("BPP=4\n", fout);
+				else
+					fputs("BPP=8\n", fout);
+			}
 			fputs("mipmaps=0\n", fout);
 			fputs("palette_offset=-1\n", fout);
+			//if (bMW_PS2)
+			//{
+			//
+			//
+			//	//if (InTexStruct[i].Child4.PalettePlacement < 0)
+			//	//{
+			//	//	fputs("mipmaps=0\n", fout);
+			//	//	fputs("palette_offset=-1\n", fout);
+			//	//}
+			//	//else
+			//	//{
+			//	//	fputs("mipmaps=-1\n", fout);
+			//	//	fprintf(fout, "palette_offset=%d\n", InTexStruct[i].Child4.PalettePlacement + InTPKToolInternal->RelativeDDSDataOffset);
+			//	//}
+			//}
+			//else
+			//{
+			//	fputs("mipmaps=0\n", fout);
+			//	fputs("palette_offset=-1\n", fout);
+			//}
 		}
 		else
 		{
-			fprintf(fout, "BPP=%d\n", InTexStruct[i].Child4.ImageCompressionType);
-			fputs("mipmaps=-1\n", fout);
-			fprintf(fout, "palette_offset=%d\n", InTexStruct[i].Child4.PalettePlacement + InTPKToolInternal->RelativeDDSDataOffset);
+			if (InTexStruct[i].Child4.ImageCompressionType & 0x4)
+				fputs("BPP=4\n", fout);
+			else
+				fputs("BPP=8\n", fout);
+			if (InTexStruct[i].Child4.PalettePlacement < 0)
+			{
+				fputs("mipmaps=0\n", fout);
+				fputs("palette_offset=-1\n", fout);
+			}
+			else
+			{
+				fputs("mipmaps=-1\n", fout);
+				fprintf(fout, "palette_offset=%d\n", InTexStruct[i].Child4.PalettePlacement + InTPKToolInternal->RelativeDDSDataOffset);
+			}
 		}
 		fputs("swizzling=Enabled\n", fout);
 	}
