@@ -757,7 +757,7 @@ int TPK_v2_ChildType4Reader(FILE *finput, unsigned int ChunkSize, TexStruct* Out
 		OutTexStruct[tdc].Child4.ScaleS = (*TPKv4Child4_Bridge).ScaleS;
 		OutTexStruct[tdc].Child4.ScaleT = (*TPKv4Child4_Bridge).ScaleT;
 
-		if (ReadingMode == TPKTOOL_READINGMODE_PLAT_V2_PS2)
+		if (ReadingMode == TPKTOOL_READINGMODE_PLAT_V2_PS2 && bCompressed)
 		{
 			OutTexStruct[tdc].Child4.ImagePlacement = TIMoffsets.at(tdc);
 			OutTexStruct[tdc].Child4.PalettePlacement = (*TPKv4Child4_Bridge).PalettePlacement + TIMoffsets.at(tdc);

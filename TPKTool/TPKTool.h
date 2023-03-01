@@ -697,15 +697,15 @@ int WriteConsoleTexExplorerIni_PS2(const char* outFilename, TexStruct* InTexStru
 		fprintf(fout, "offset=%d\n", InTexStruct[i].Child4.ImagePlacement + InTPKToolInternal->RelativeDDSDataOffset);
 		fprintf(fout, "width=%d\n", InTexStruct[i].Child4.Width);
 		fprintf(fout, "height=%d\n", InTexStruct[i].Child4.Height);
-		//fprintf(fout, "BPP=%d\n", InTexStruct[i].Child4.ImageCompressionType);
-		fputs("BPP=8\n", fout);
 		if (bCompressed)
 		{
+			fputs("BPP=8\n", fout);
 			fputs("mipmaps=0\n", fout);
 			fputs("palette_offset=-1\n", fout);
 		}
 		else
 		{
+			fprintf(fout, "BPP=%d\n", InTexStruct[i].Child4.ImageCompressionType);
 			fputs("mipmaps=-1\n", fout);
 			fprintf(fout, "palette_offset=%d\n", InTexStruct[i].Child4.PalettePlacement + InTPKToolInternal->RelativeDDSDataOffset);
 		}
