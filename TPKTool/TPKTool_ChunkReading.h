@@ -1222,7 +1222,6 @@ int TPKChunkReader(FILE *finput, unsigned int ChunkSize, TexStruct *OutTexStruct
 		case TPK_CHILD5_CHUNKID:
 			switch (ReadingMode)
 			{
-			case TPKTOOL_READINGMODE_PLAT_V2_PS2:
 			case TPKTOOL_READINGMODE_V2:
 				TPK_v2_ChildType5Reader(finput, Size, OutGamePixelFormat, OutTexStruct);
 				break;
@@ -1238,6 +1237,10 @@ int TPKChunkReader(FILE *finput, unsigned int ChunkSize, TexStruct *OutTexStruct
 			case TPKTOOL_READINGMODE_PLAT_XBOX:
 				TPK_Xbox_ChildType5Reader(finput, Size, OutGamePixelFormat, OutTexStruct);
 				break;
+			case TPKTOOL_READINGMODE_PLAT_V2_PS2:
+				printf("Skipping child 5 chunk size %X\n", Magic, Size);
+				fseek(finput, Size, SEEK_CUR);
+			    break;
 			default:
 				TPKChildType5Reader(finput, Size, OutGamePixelFormat);
 				break;
