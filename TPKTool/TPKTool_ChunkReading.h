@@ -1108,6 +1108,10 @@ int TPK_v2_ChildType3Reader_PS2(FILE* finput, unsigned int ChunkSize, TPKToolInt
 
 			fread(InBuffer, Child3.Size, 1, finput);
 			fseek(finput, SavedOffset, SEEK_SET); // input file is unnecessary at this point
+			uint32_t test = 0;
+			fread(&test, sizeof(uint32_t), 1, finput);
+			if (test != 0)
+				fseek(finput, -4, SEEK_CUR);
 
 			LZDecompress(InBuffer, OutBuffer);
 
@@ -1124,6 +1128,10 @@ int TPK_v2_ChildType3Reader_PS2(FILE* finput, unsigned int ChunkSize, TPKToolInt
 			InBuffer = (unsigned char*)malloc(Child3.Size);
 			fread(InBuffer, Child3.Size, 1, finput);
 			fseek(finput, SavedOffset, SEEK_SET); // input file is unnecessary at this point
+			uint32_t test = 0;
+			fread(&test, sizeof(uint32_t), 1, finput);
+			if (test != 0)
+				fseek(finput, -4, SEEK_CUR);
 
 			TIMoffsets.push_back(ftell(ftim));
 			fwrite(InBuffer, Child3.Size, 1, ftim);
