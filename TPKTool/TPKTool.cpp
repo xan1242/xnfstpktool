@@ -460,7 +460,7 @@ int main(int argc, char *argv[])
 		WriteConsoleTexExplorerIni_PS2(CTEininame.c_str(), texture, TPKToolStuff);
 	}
 
-	free(TPKToolStuff);
+	//free(TPKToolStuff);
 
 	return 0;
 }

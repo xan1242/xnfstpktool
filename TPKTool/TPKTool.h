@@ -712,6 +712,8 @@ int WriteConsoleTexExplorerIni_PS2(const char* outFilename, TexStruct* InTexStru
 		fputs("swizzling=Enabled\n", fout);
 	}
 
+	fclose(fout);
+
 	return 0;
 }
 
