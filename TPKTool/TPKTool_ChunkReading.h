@@ -192,7 +192,7 @@ int OutputDDS(FILE *finput, const char* OutFilePath, unsigned int TexNumber, uns
 	void* OutDDSDataBuffer = malloc(OutTexStruct[TexNumber].Child4.ImageSize);
 
 	//(*OutTPKToolInternal).DDSDataBuffer = malloc(OutTexStruct[TexNumber].Child4.ImageSize);
-	OutTPKToolInternal->RelativeDDSDataOffset = RelativeStart;
+	
 	fseek(finput, OutTexStruct[TexNumber].Child4.ImagePlacement + RelativeStart, SEEK_SET);
 	//fread((*OutTPKToolInternal).DDSDataBuffer, sizeof(char), OutTexStruct[TexNumber].Child4.ImageSize, finput);
 	fread(OutDDSDataBuffer, sizeof(char), OutTexStruct[TexNumber].Child4.ImageSize, finput);
@@ -290,40 +290,43 @@ int TPKDataChildType2Reader(FILE *finput, unsigned int ChunkSize, const char* Ou
 	unsigned int RelativeStart = ftell(finput);
 	sprintf(TPKHashPathString, "%X", (*OutTPKToolInternal).HashArray[0]);
 
+	OutTPKToolInternal->RelativeDDSDataOffset = RelativeStart;
 
 	strcpy((*OutTPKToolInternal).SettingsFileName, TPKHashPathString);
 	strcat((*OutTPKToolInternal).SettingsFileName, ".ini");
 	strcpy((*OutTPKToolInternal).StatFileName, TPKHashPathString);
 	strcat((*OutTPKToolInternal).StatFileName, "_statistics.txt");
 
-
-	strcat(InputFilePath, "\\");
-	strcat(InputFilePath, TPKHashPathString);
-
-	if (stat(InputFilePath, &st) == -1)
+	if ((ReadingMode != TPKTOOL_READINGMODE_PLAT_V2_PS2) && (ReadingMode != TPKTOOL_READINGMODE_PLAT_PS2))
 	{
-		printf("Making directory %s\n", InputFilePath);
-		_mkdir(InputFilePath);
-	}
-	for (unsigned int i = 0; i < (*OutTPKToolInternal).TextureCategoryHashCount; i++)
-	{
-		strcpy((*OutTPKToolInternal).TotalFilePath, InputFilePath); // i'm tired, i can't even anymore
-		strcat((*OutTPKToolInternal).TotalFilePath, "\\");
-		strcat((*OutTPKToolInternal).TotalFilePath, OutTexStruct[i].TexName);
-		strcat((*OutTPKToolInternal).TotalFilePath, ".dds");
+		strcat(InputFilePath, "\\");
+		strcat(InputFilePath, TPKHashPathString);
 
-		if (bFileExists((*OutTPKToolInternal).TotalFilePath))
+		if (stat(InputFilePath, &st) == -1)
 		{
-			strcpy((*OutTPKToolInternal).TotalFilePath, DuplicateFileName((*OutTPKToolInternal).TotalFilePath));
+			printf("Making directory %s\n", InputFilePath);
+			_mkdir(InputFilePath);
 		}
+		for (unsigned int i = 0; i < (*OutTPKToolInternal).TextureCategoryHashCount; i++)
+		{
+			strcpy((*OutTPKToolInternal).TotalFilePath, InputFilePath); // i'm tired, i can't even anymore
+			strcat((*OutTPKToolInternal).TotalFilePath, "\\");
+			strcat((*OutTPKToolInternal).TotalFilePath, OutTexStruct[i].TexName);
+			strcat((*OutTPKToolInternal).TotalFilePath, ".dds");
 
-		printf("Outputting %s\n", (*OutTPKToolInternal).TotalFilePath);
-		OutputDDS(finput, (*OutTPKToolInternal).TotalFilePath, i, RelativeStart, OutTPKToolInternal, OutGamePixelFormat, OutTexStruct, bByteSwap);
+			if (bFileExists((*OutTPKToolInternal).TotalFilePath))
+			{
+				strcpy((*OutTPKToolInternal).TotalFilePath, DuplicateFileName((*OutTPKToolInternal).TotalFilePath));
+			}
 
-		strcpy(OutTexStruct[i].FilesystemPath, (*OutTPKToolInternal).TotalFilePath);
-		fseek(finput, OutTexStruct[i].Child4.ImageSize, SEEK_CUR);
+			printf("Outputting %s\n", (*OutTPKToolInternal).TotalFilePath);
+			OutputDDS(finput, (*OutTPKToolInternal).TotalFilePath, i, RelativeStart, OutTPKToolInternal, OutGamePixelFormat, OutTexStruct, bByteSwap);
+
+			strcpy(OutTexStruct[i].FilesystemPath, (*OutTPKToolInternal).TotalFilePath);
+			fseek(finput, OutTexStruct[i].Child4.ImageSize, SEEK_CUR);
+		}
+		printf("Extraction finished.\n");
 	}
-	printf("Extraction finished.\n");
 	return 1;
 }
 
