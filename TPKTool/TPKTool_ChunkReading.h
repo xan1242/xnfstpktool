@@ -1092,31 +1092,46 @@ int TPK_v2_ChildType3Reader_PS2(FILE* finput, unsigned int ChunkSize, TPKToolInt
 
 	do
 	{
-		JDLZhead cmphdr;
 		fread(&Child3, sizeof(TPKChild3_v2_Struct), 1, finput);
 		SavedOffset = ftell(finput);
 		fseek(finput, Child3.AbsoluteOffset, SEEK_SET);
-		fread(&cmphdr, sizeof(JDLZhead), 1, finput);
-		fseek(finput, Child3.AbsoluteOffset, SEEK_SET);
 
-		InBuffer = (unsigned char*)malloc(Child3.Size);
-		OutBuffer = (unsigned char*)malloc(cmphdr.OutSize);
-		//InfoBuffer = (unsigned char*)malloc(Child3.FromEndToHeaderOffset);
+		if (Child3.comp)
+		{
+			JDLZhead cmphdr;
+			fread(&cmphdr, sizeof(JDLZhead), 1, finput);
+			fseek(finput, Child3.AbsoluteOffset, SEEK_SET);
 
-		fread(InBuffer, Child3.Size, 1, finput);
-		fseek(finput, SavedOffset, SEEK_SET); // input file is unnecessary at this point
+			InBuffer = (unsigned char*)malloc(Child3.Size);
+			OutBuffer = (unsigned char*)malloc(cmphdr.OutSize);
+			//InfoBuffer = (unsigned char*)malloc(Child3.FromEndToHeaderOffset);
 
-		//	NumberOfCompBlocks = 0;
+			fread(InBuffer, Child3.Size, 1, finput);
+			fseek(finput, SavedOffset, SEEK_SET); // input file is unnecessary at this point
 
-		LZDecompress(InBuffer, OutBuffer);
+			LZDecompress(InBuffer, OutBuffer);
 
-		
-		TIMoffsets.push_back(ftell(ftim));
-		fwrite(OutBuffer, cmphdr.OutSize, 1, ftim);
-		
+			TIMoffsets.push_back(ftell(ftim));
+			fwrite(OutBuffer, cmphdr.OutSize, 1, ftim);
 
-		free(OutBuffer);
-		free(InBuffer);
+
+			free(OutBuffer);
+			free(InBuffer);
+		}
+		else
+		{
+			fseek(finput, Child3.AbsoluteOffset, SEEK_SET);
+			InBuffer = (unsigned char*)malloc(Child3.Size);
+			fread(InBuffer, Child3.Size, 1, finput);
+			fseek(finput, SavedOffset, SEEK_SET); // input file is unnecessary at this point
+
+			TIMoffsets.push_back(ftell(ftim));
+			fwrite(InBuffer, Child3.Size, 1, ftim);
+			
+			free(InBuffer);
+		}
+
+
 		//(*InTPKToolInternal).TextureDataCount++;
 	} while (ftell(finput) < RelativeEnd);
 	fclose(ftim);
@@ -1159,14 +1174,25 @@ int TPKChildType1Reader(FILE *finput, unsigned int ChunkSize, TPKToolInternalStr
 	{
 		//fseek(finput, 4, SEEK_CUR);
 		fread(&(*OutTPKToolInternal).TPKTypeValue, 1, sizeof(int), finput);
-		fread((*OutTPKToolInternal).TPKTypeName, 1, TPK_TYPENAME_SIZE, finput);
-		printf("TPK Type name: %s\n", (*OutTPKToolInternal).TPKTypeName);
-		fread((*OutTPKToolInternal).TPKPathName, 1, TPK_PATHNAME_SIZE, finput);
-		printf("TPK Path: %s\n", (*OutTPKToolInternal).TPKPathName);
-		fread((*OutTPKToolInternal).HashArray, 4, 7, finput);
+
+		if (OutTPKToolInternal->TPKTypeValue == 3)
+		{
+			fread((*OutTPKToolInternal).TPKTypeName, 1, 0x20, finput);
+			printf("TPK Type name: %s\n", (*OutTPKToolInternal).TPKTypeName);
+			fread((*OutTPKToolInternal).TPKPathName, 1, 0x58, finput);
+			printf("TPK Path: %s\n", (*OutTPKToolInternal).TPKPathName);
+			OutTPKToolInternal->HashArray[0] = 0xDEADBEEF;
+		}
+		else
+		{
+			fread((*OutTPKToolInternal).TPKTypeName, 1, TPK_TYPENAME_SIZE, finput);
+			printf("TPK Type name: %s\n", (*OutTPKToolInternal).TPKTypeName);
+			fread((*OutTPKToolInternal).TPKPathName, 1, TPK_PATHNAME_SIZE, finput);
+			printf("TPK Path: %s\n", (*OutTPKToolInternal).TPKPathName);
+			fread((*OutTPKToolInternal).HashArray, 4, 7, finput);
+		}
 	}
-	for (unsigned int i = 0; i <= 6; i++)
-		printf("TPK hash array [%d] = %X\n", i, (*OutTPKToolInternal).HashArray[i]);
+	printf("TPK hash: %X\n", OutTPKToolInternal->HashArray[0]);
 	return 1;
 }
 

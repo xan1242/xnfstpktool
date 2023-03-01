@@ -233,7 +233,9 @@ struct TPKChild3_v2_Struct
 	uint32_t TextureHash;
 	uint32_t AbsoluteOffset;
 	uint32_t Size;
-	uint32_t OutSize;
+	uint8_t unk;
+	uint8_t comp;
+	uint16_t unk2;
 	uint32_t FromEndToHeaderOffset;
 };
 
