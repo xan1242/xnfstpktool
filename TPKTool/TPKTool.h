@@ -465,6 +465,8 @@ struct TexStruct
 	char FilesystemPath[255];
 };
 
+string TIMDataName;
+
 // a structure to encompass internally used variables to reduce text clutter during argument passing
 // MEMORY LEAK! very hacky ATM, needs fixing ASAP
 struct TPKToolInternalStruct
@@ -475,8 +477,7 @@ struct TPKToolInternalStruct
 	char StatFileName[32];
 	char SettingsFileName[32];
 	char OutputPath[1024];
-	char TotalFilePath[1024];
-	string TIMDataName;
+	char TotalFilePath[1224];
 	unsigned int HashArray[7];
 	unsigned int TextureCategoryHashArray[0xFFFF];
 	unsigned int TextureCategoryHashCount;

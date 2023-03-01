@@ -1081,13 +1081,14 @@ int TPK_v2_ChildType3Reader_PS2(FILE* finput, unsigned int ChunkSize, TPKToolInt
 	sprintf(InTPKToolInternal->SettingsFileName, "%X", InTPKToolInternal->HashArray[0]);
 	strcat(InTPKToolInternal->SettingsFileName, ".ini");
 
-	if (InTPKToolInternal->TIMDataName.length() == 0)
+	if (TIMDataName.length() == 0)
 	{
-		InTPKToolInternal->TIMDataName = InTPKToolInternal->TotalFilePath;
-		InTPKToolInternal->TIMDataName += "\\";
-		InTPKToolInternal->TIMDataName += "timdata.bin";
+		TIMDataName = InTPKToolInternal->TotalFilePath;
+		TIMDataName += "\\";
+		TIMDataName += "timdata.bin";
+
 	}
-	FILE* ftim = fopen(InTPKToolInternal->TIMDataName.c_str(), "wb");
+	FILE* ftim = fopen(TIMDataName.c_str(), "wb");
 
 	do
 	{
