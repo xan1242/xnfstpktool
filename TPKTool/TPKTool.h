@@ -114,6 +114,7 @@ While this tool can extract data for other platforms, it only fully works with P
 int ReadingMode = 0;
 int WritingMode = 0;
 bool bCompressed = 0;
+bool bUG2_PS2 = false;
 
 #define FOURCC_DXT1 0x31545844
 #define FOURCC_DXT3 0x33545844
@@ -699,7 +700,10 @@ int WriteConsoleTexExplorerIni_PS2(const char* outFilename, TexStruct* InTexStru
 		fprintf(fout, "height=%d\n", InTexStruct[i].Child4.Height);
 		if (bCompressed)
 		{
-			fputs("BPP=8\n", fout);
+			if (bUG2_PS2)
+				fprintf(fout, "BPP=%d\n", InTexStruct[i].Child4.ImageCompressionType);
+			else
+				fputs("BPP=8\n", fout);
 			fputs("mipmaps=0\n", fout);
 			fputs("palette_offset=-1\n", fout);
 		}

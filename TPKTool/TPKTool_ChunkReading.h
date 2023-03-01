@@ -1112,6 +1112,8 @@ int TPK_v2_ChildType3Reader_PS2(FILE* finput, unsigned int ChunkSize, TPKToolInt
 			fread(&test, sizeof(uint32_t), 1, finput);
 			if (test != 0)
 				fseek(finput, -4, SEEK_CUR);
+			else
+				bUG2_PS2 = true;
 
 			LZDecompress(InBuffer, OutBuffer);
 
