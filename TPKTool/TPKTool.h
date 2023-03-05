@@ -40,6 +40,13 @@ using namespace std;
 #define TPKDATA_CHILD2_CHUNKID 0x33320002
 #define TPKDATA_CHILD3_CHUNKID 0x33320003
 
+// HP2 chunks
+#define TPK_HP2_MAIN_CHUNKID 0xB0300001
+#define TPK_HP2_CHUNK2_CHUNKID 0x30300002
+#define TPK_HP2_CHUNK3_CHUNKID 0x30300003
+#define TPK_HP2_CHUNK4_CHUNKID 0x30300004
+
+
 #define TEXTURENUMCHANNELS 4
 #define TPK_TYPENAME_SIZE 0x1C
 #define TPK_PATHNAME_SIZE 0x40
@@ -54,6 +61,8 @@ using namespace std;
 
 #define TPKTOOL_READINGMODE_V2 2
 #define TPKTOOL_WRITINGMODE_V2 2
+
+#define TPKTOOL_READINGMODE_HP2 3
 
 // min version is TPKv5+ for PS3 anyway, so we don't care about TPKv4 for that platform (unless someone magically ports older NFS games to PS3)
 #define TPKTOOL_READINGMODE_PLAT_PS3 3 
@@ -445,6 +454,34 @@ unsigned int Unknown4[2];
 	//char DebugName[35];
 };
 
+struct AncientTextureInfo
+{
+	uint32_t Unknown[2];
+	char DebugName[24];
+	uint32_t NameHash;
+	uint16_t Width;
+	uint16_t Height;
+	uint8_t ImageCompressionType;
+	uint8_t RenderingOrder;
+	uint8_t unk1;
+	uint8_t unk2;
+	uint8_t unk3;
+	uint8_t unk4;
+	uint8_t unk5;
+	uint8_t AlphaUsageType;
+	uint32_t ImagePlacement;
+	int32_t PalettePlacement;
+	int32_t ImageSize;
+	int32_t PaletteSize;
+	uint32_t unk6;
+	uint32_t unk7;
+	uint8_t ShiftWidth;
+	uint8_t ShiftHeight;
+	uint8_t UnkData[0xB];
+	uint8_t swizzled;
+	uint8_t RestOfData[0x4E];
+};
+
 struct TexturePackHeader
 {
 	int Version;
@@ -579,7 +616,7 @@ bool bCheckIfVaildFile(const char* FileName)
 	fread(&Size, 4, 1, finput);
 
 	fclose(finput);
-	if (Magic != TPKCAPSULE_CHUNKID || Size == 0)
+	if ((Magic != TPKCAPSULE_CHUNKID) && (Magic != TPK_HP2_MAIN_CHUNKID) || Size == 0)
 	{
 		printf("%s Invalid file.\n", PRINTTYPE_ERROR);
 		return false;
@@ -650,7 +687,7 @@ int SpitSettingsFile(const char* OutFileName, TexStruct *InTexStruct, TPKToolInt
 		fprintf(fout, "PixelFormatUnk2 = 0x%X\n", InGamePixelFormat[i].Unknown2);
 		fprintf(fout, "PixelFormatUnk3 = 0x%X\n", InGamePixelFormat[i].Unknown3);
 
-		if ((ReadingMode == TPKTOOL_READINGMODE_PLAT_PS2) || (ReadingMode == TPKTOOL_READINGMODE_PLAT_V2_PS2))
+		if ((ReadingMode == TPKTOOL_READINGMODE_PLAT_PS2) || (ReadingMode == TPKTOOL_READINGMODE_PLAT_V2_PS2) || (ReadingMode == TPKTOOL_READINGMODE_HP2))
 		{
 			fprintf(fout, "Width = %d\n", InTexStruct[i].Child4.Width);
 			fprintf(fout, "Height = %d\n", InTexStruct[i].Child4.Height);
@@ -698,8 +735,8 @@ int WriteConsoleTexExplorerIni_PS2(const char* outFilename, TexStruct* InTexStru
 		fprintf(fout, "name=%s\n", InTexStruct[i].TexName);
 		fputs("platform=PS2\n", fout);
 		fprintf(fout, "offset=%d\n", InTexStruct[i].Child4.ImagePlacement + InTPKToolInternal->RelativeDDSDataOffset);
-		fprintf(fout, "width=%d\n", InTexStruct[i].Child4.Width);
-		fprintf(fout, "height=%d\n", InTexStruct[i].Child4.Height);
+		fprintf(fout, "width=%d\n", (uint32_t)pow(2, InTexStruct[i].Child4.ShiftWidth));
+		fprintf(fout, "height=%d\n", (uint32_t)pow(2, InTexStruct[i].Child4.ShiftHeight));
 		if (bCompressed)
 		{
 			if (InTexStruct[i].Child4.ImageCompressionType == 0)
@@ -748,10 +785,22 @@ int WriteConsoleTexExplorerIni_PS2(const char* outFilename, TexStruct* InTexStru
 			else
 			{
 				fputs("mipmaps=-1\n", fout);
-				fprintf(fout, "palette_offset=%d\n", InTexStruct[i].Child4.PalettePlacement + InTPKToolInternal->RelativeDDSDataOffset);
+				//if (ReadingMode == TPKTOOL_READINGMODE_HP2)
+				//	fprintf(fout, "palette_offset=%d\n", InTexStruct[i].Child4.PalettePlacement + InTexStruct[i].Child4.ImagePlacement + InTPKToolInternal->RelativeDDSDataOffset);
+				//else
+					fprintf(fout, "palette_offset=%d\n", InTexStruct[i].Child4.PalettePlacement + InTPKToolInternal->RelativeDDSDataOffset);
 			}
 		}
-		fputs("swizzling=Enabled\n", fout);
+
+		if (ReadingMode == TPKTOOL_READINGMODE_HP2)
+		{
+			if (InTexStruct[i].Child4.Unknown)
+				fputs("swizzling=Enabled\n", fout);
+			else
+				fputs("swizzling=Disabled\n", fout);
+		}
+		else
+			fputs("swizzling=Enabled\n", fout);
 	}
 
 	fclose(fout);

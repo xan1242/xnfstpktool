@@ -291,12 +291,12 @@ int TPKDataChildType2Reader(FILE *finput, unsigned int ChunkSize, const char* Ou
 
 	fseek(finput, -2, SEEK_CUR); // moving back to where the data is...
 	unsigned int RelativeStart = ftell(finput);
-	sprintf(TPKHashPathString, "%X", (*OutTPKToolInternal).HashArray[0]);
+	//sprintf(TPKHashPathString, "%X", (*OutTPKToolInternal).HashArray[0]);
 
 	OutTPKToolInternal->RelativeDDSDataOffset = RelativeStart;
 
-	strcpy((*OutTPKToolInternal).SettingsFileName, TPKHashPathString);
-	strcat((*OutTPKToolInternal).SettingsFileName, ".ini");
+	//strcpy((*OutTPKToolInternal).SettingsFileName, TPKHashPathString);
+	//strcat((*OutTPKToolInternal).SettingsFileName, ".ini");
 	strcpy((*OutTPKToolInternal).StatFileName, TPKHashPathString);
 	strcat((*OutTPKToolInternal).StatFileName, "_statistics.txt");
 
@@ -757,10 +757,17 @@ int TPK_v2_ChildType4Reader(FILE *finput, unsigned int ChunkSize, TexStruct* Out
 		OutTexStruct[tdc].Child4.ScaleS = (*TPKv4Child4_Bridge).ScaleS;
 		OutTexStruct[tdc].Child4.ScaleT = (*TPKv4Child4_Bridge).ScaleT;
 
-		if (ReadingMode == TPKTOOL_READINGMODE_PLAT_V2_PS2 && bCompressed)
+		if (ReadingMode == TPKTOOL_READINGMODE_PLAT_V2_PS2)
 		{
-			OutTexStruct[tdc].Child4.ImagePlacement = TIMoffsets.at(tdc);
-			OutTexStruct[tdc].Child4.PalettePlacement = (*TPKv4Child4_Bridge).PalettePlacement + TIMoffsets.at(tdc);
+			if (bCompressed)
+			{
+				OutTexStruct[tdc].Child4.ImagePlacement = TIMoffsets.at(tdc);
+				OutTexStruct[tdc].Child4.PalettePlacement = (*TPKv4Child4_Bridge).PalettePlacement + TIMoffsets.at(tdc);
+			}
+			else
+			{
+				OutTexStruct[tdc].Child4.PalettePlacement = (*TPKv4Child4_Bridge).PalettePlacement;
+			}
 		}
 		tdc++;
 	}
@@ -1421,6 +1428,120 @@ int TPKChunkReader(FILE *finput, unsigned int ChunkSize, TexStruct *OutTexStruct
 	return 1;
 }
 
+int TPK_HP2_ChildType4Bridge(FILE* finput, unsigned int ChunkSize, TexStruct* OutTexStruct, TPKToolInternalStruct* OutTPKToolInternal)
+{
+	// UG2 & MW
+
+//TPKChild4Struct_TPKv4 *TPKv4Child4_Bridge = (TPKChild4Struct_TPKv4*)calloc(1, sizeof(TPKChild4Struct_TPKv4));
+	//OldTextureInfo* TPKv4Child4_Bridge = (OldTextureInfo*)calloc(1, sizeof(OldTextureInfo));
+	AncientTextureInfo TPK_HP2_Bridge = { 0 };
+
+	unsigned int RelativeEnd = ftell(finput) + ChunkSize;
+	printf("HP2 TPK Chunk 3 size: %X\n", ChunkSize);
+	uint32_t tdc = OutTPKToolInternal->TextureDataCount;
+
+	while (ftell(finput) < RelativeEnd)
+	{
+		fread(&TPK_HP2_Bridge, sizeof(AncientTextureInfo), 1, finput);
+
+		strcpy_s(OutTexStruct[tdc].TexName, TPK_HP2_Bridge.DebugName);
+		OutTexStruct[tdc].Child4.NameHash = TPK_HP2_Bridge.NameHash;
+		OutTexStruct[tdc].Child4.ImagePlacement = TPK_HP2_Bridge.ImagePlacement;
+		OutTexStruct[tdc].Child4.PalettePlacement = TPK_HP2_Bridge.PalettePlacement;
+		OutTexStruct[tdc].Child4.ImageSize = TPK_HP2_Bridge.ImageSize;
+		OutTexStruct[tdc].Child4.PaletteSize = TPK_HP2_Bridge.PaletteSize;
+		//OutTexStruct[tdc].Child4.BaseImageSize = TPK_HP2_Bridge.BaseImageSize;
+		//OutTexStruct[tdc].Child4.Width = (uint16_t)pow(2, TPK_HP2_Bridge.ShiftWidth);
+		//OutTexStruct[tdc].Child4.Height = (uint16_t)pow(2, TPK_HP2_Bridge.ShiftHeight);
+		OutTexStruct[tdc].Child4.Width = TPK_HP2_Bridge.Width;
+		OutTexStruct[tdc].Child4.Height = TPK_HP2_Bridge.Height;
+		OutTexStruct[tdc].Child4.ShiftWidth = TPK_HP2_Bridge.ShiftWidth;
+		OutTexStruct[tdc].Child4.ShiftHeight = TPK_HP2_Bridge.ShiftHeight;
+		OutTexStruct[tdc].Child4.ImageCompressionType = TPK_HP2_Bridge.ImageCompressionType;
+		OutTexStruct[tdc].Child4.Unknown = TPK_HP2_Bridge.swizzled;
+		//OutTexStruct[tdc].Child4.PaletteCompressionType = TPK_HP2_Bridge.PaletteCompressionType;
+		//OutTexStruct[tdc].Child4.NumPaletteEntries = (*TPKv4Child4_Bridge).NumPaletteEntries;
+		//OutTexStruct[tdc].Child4.NumMipMapLevels = (*TPKv4Child4_Bridge).NumMipMapLevels;
+		//OutTexStruct[tdc].Child4.TilableUV = (*TPKv4Child4_Bridge).TilableUV;
+		//OutTexStruct[tdc].Child4.BiasLevel = (*TPKv4Child4_Bridge).BiasLevel;
+		OutTexStruct[tdc].Child4.RenderingOrder = TPK_HP2_Bridge.RenderingOrder;
+		//OutTexStruct[tdc].Child4.ScrollType = TPK_HP2_Bridge.ScrollType;
+		//OutTexStruct[tdc].Child4.UsedFlag = (*TPKv4Child4_Bridge).UsedFlag;
+		//OutTexStruct[tdc].Child4.ApplyAlphaSorting = TPK_HP2_Bridge.ApplyAlphaSorting;
+		OutTexStruct[tdc].Child4.AlphaUsageType = TPK_HP2_Bridge.AlphaUsageType;
+		//OutTexStruct[tdc].Child4.AlphaBlendType = (*TPKv4Child4_Bridge).AlphaBlendType;
+		//OutTexStruct[tdc].Child4.Flags = (*TPKv4Child4_Bridge).Flags;
+		//OutTexStruct[(*OutTPKToolInternal).TextureDataCount].Child4.MipmapBiasType = (*TPKv4Child4_Bridge).MipmapBiasType;
+		//OutTexStruct[(*OutTPKToolInternal).TextureDataCount].Child4.Padding = (*TPKv4Child4_Bridge).Unknown3;
+		//OutTexStruct[tdc].Child4.ScrollTimeStep = (*TPKv4Child4_Bridge).ScrollTimeStep;
+		//OutTexStruct[tdc].Child4.ScrollSpeedS = (*TPKv4Child4_Bridge).ScrollSpeedS;
+		//OutTexStruct[tdc].Child4.ScrollSpeedT = (*TPKv4Child4_Bridge).ScrollSpeedT;
+		//OutTexStruct[tdc].Child4.OffsetS = (*TPKv4Child4_Bridge).OffsetS;
+		//OutTexStruct[tdc].Child4.OffsetT = (*TPKv4Child4_Bridge).OffsetT;
+		//OutTexStruct[tdc].Child4.ScaleS = (*TPKv4Child4_Bridge).ScaleS;
+		//OutTexStruct[tdc].Child4.ScaleT = (*TPKv4Child4_Bridge).ScaleT;
+
+		//if (ReadingMode == TPKTOOL_READINGMODE_PLAT_V2_PS2)
+		//{
+		//	if (bCompressed)
+		//	{
+		//		OutTexStruct[tdc].Child4.ImagePlacement = TIMoffsets.at(tdc);
+		//		OutTexStruct[tdc].Child4.PalettePlacement = (*TPKv4Child4_Bridge).PalettePlacement + TIMoffsets.at(tdc);
+		//	}
+		//	else
+		//	{
+		//		OutTexStruct[tdc].Child4.PalettePlacement = (*TPKv4Child4_Bridge).PalettePlacement;
+		//	}
+		//}
+		tdc++;
+	}
+
+	OutTPKToolInternal->TextureDataCount = tdc;
+
+	return 1;
+}
+
+int TPK_HP2_ChunkReader(FILE* finput, unsigned int ChunkSize, TexStruct* OutTexStruct, TPKToolInternalStruct* OutTPKToolInternal, GamePixelFormatStruct* OutGamePixelFormat, TPKAnimStruct* OutTPKAnim)
+{
+	printf("HP2 TPK main chunk size: %X\n", ChunkSize);
+	unsigned int Magic = 0;
+	unsigned int Size = 0;
+	unsigned int RelativeEnd = ftell(finput) + ChunkSize;
+	unsigned short int Padding = 0;
+	while (ftell(finput) < RelativeEnd)
+	{
+		ReadChunkTypeAndSize(finput, Magic, Size);
+		switch (Magic)
+		{
+		case TPK_HP2_CHUNK2_CHUNKID:
+			fread(OutTPKToolInternal->TPKTypeName, 1, Size, finput);
+			//printf("TPK Type name: %s\n", (*OutTPKToolInternal).TPKTypeName);
+			cout << "TPK Type name: " << OutTPKToolInternal->TPKTypeName << '\n';
+
+			break;
+		case TPK_HP2_CHUNK3_CHUNKID:
+			TPK_HP2_ChildType4Bridge(finput, Size, OutTexStruct, OutTPKToolInternal);
+			break;
+		case TPK_HP2_CHUNK4_CHUNKID:
+			do
+			{
+				fread(&Padding, sizeof(short int), 1, finput);
+			} while (Padding == 0x1111);
+
+			fseek(finput, -2, SEEK_CUR); // moving back to where the data is...
+			OutTPKToolInternal->RelativeDDSDataOffset = ftell(finput);
+			fseek(finput, Size, SEEK_CUR);
+			break;
+		default:
+			printf("Skipping chunk type %X size %X\n", Magic, Size);
+			fseek(finput, Size, SEEK_CUR);
+			break;
+
+		}
+	}
+	return 1;
+}
+
 int MasterChunkReader(const char* FileName, const char* OutFolderPath, TPKToolInternalStruct *OutTPKToolInternal, TexStruct* OutTexStruct, GamePixelFormatStruct *OutGamePixelFormat, TPKAnimStruct* OutTPKAnim, TPKLinkStruct *OutTPKLink)
 {
 	if (!bFileExists(FileName))
@@ -1452,6 +1573,28 @@ int MasterChunkReader(const char* FileName, const char* OutFolderPath, TPKToolIn
 			}
 			else
 				TPKDataChunkReader(finput, Size2, OutFolderPath, OutTPKToolInternal, OutGamePixelFormat, OutTexStruct, OutTPKLink);
+			break;
+		case TPKDATA_CHILD1_CHUNKID:
+			if ((OutTPKToolInternal->TPKTypeValue == 3) && !bCompressed)
+			{
+				unsigned int RelativeEnd = ftell(finput) + Size2;
+				unsigned short int Padding = 0;
+				do
+				{
+					fread(&Padding, sizeof(short int), 1, finput);
+				} while (Padding == 0x1111);
+
+				fseek(finput, -2, SEEK_CUR); // moving back to where the data is...
+				unsigned int RelativeStart = ftell(finput);
+				OutTPKToolInternal->RelativeDDSDataOffset = RelativeStart;
+				fseek(finput, RelativeEnd, SEEK_SET);
+				break;
+			}
+		case TPK_HP2_CHUNK2_CHUNKID:
+			ReadingMode = TPKTOOL_READINGMODE_HP2;
+			cout << "Detected HP2 TPK chunk. Going to HP2 mode." << '\n';
+			fseek(finput, -8, SEEK_CUR);
+			TPK_HP2_ChunkReader(finput, Size, OutTexStruct, OutTPKToolInternal, OutGamePixelFormat, OutTPKAnim);
 			break;
 		default:
 			printf("Skipping chunk type %X size %X\n", Magic, Size2);

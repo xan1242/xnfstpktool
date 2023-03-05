@@ -455,15 +455,25 @@ int main(int argc, char *argv[])
 		MasterChunkReader(argv[1], (*TPKToolStuff).OutputPath, TPKToolStuff, texture, GamePixelFormat, TPKAnim, &TPKLink);
 	}
 
+	if (TPKToolStuff->HashArray[0] == 0)
+		TPKToolStuff->HashArray[0] = 0xDEADBEEF;
+
+	sprintf(TPKToolStuff->SettingsFileName, "%X", TPKToolStuff->HashArray[0]);
+	strcat(TPKToolStuff->SettingsFileName, ".ini");
+
 	strcpy((*TPKToolStuff).TotalFilePath, (*TPKToolStuff).OutputPath);
 	strcat((*TPKToolStuff).TotalFilePath, "\\");
 	strcat((*TPKToolStuff).TotalFilePath, (*TPKToolStuff).SettingsFileName);
 	printf("%s Outputting settings to: %s\n", PRINTTYPE_INFO, (*TPKToolStuff).TotalFilePath);
 	SpitSettingsFile((*TPKToolStuff).TotalFilePath, texture, TPKToolStuff, TPKAnim, GamePixelFormat);
 
-	if (ReadingMode == TPKTOOL_READINGMODE_PLAT_V2_PS2)
+	if ((ReadingMode == TPKTOOL_READINGMODE_PLAT_V2_PS2) || (ReadingMode == TPKTOOL_READINGMODE_HP2))
 	{
-		string CTEininame = argv[2];
+		string CTEininame;
+		if (ReadingMode == TPKTOOL_READINGMODE_PLAT_V2_PS2)
+			CTEininame = argv[2];
+		if (ReadingMode == TPKTOOL_READINGMODE_HP2)
+			CTEininame = argv[1];
 		CTEininame += "_CTE.ini";
 
 		std::cout << "Writing Console Texture Explorer ini to: " << CTEininame << '\n';
